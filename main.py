@@ -51,10 +51,10 @@ def start_screen():
                 screen.blit(text, (10, y))
                 y += text.get_height() + 5
 
-            screen.blit(background.font.render("Нажмите пробел, чтобы начать", True, (0, 0, 0)), (
-                screen.get_width() // 2 - background.font.size("Нажмите пробел, чтобы начать")[0] // 2,
-                screen.get_height() // 2 - background.font.size("Нажмите пробел, чтобы начать")[
-                    1] // 2 + 100))
+        screen.blit(background.font.render("Нажмите пробел, чтобы начать", True, (0, 0, 0)), (
+            screen.get_width() // 2 - background.font.size("Нажмите пробел, чтобы начать")[0] // 2,
+            screen.get_height() // 2 - background.font.size("Нажмите пробел, чтобы начать")[
+                1] // 2 + 100))
 
         pygame.display.flip()
         clock.tick(60)
