@@ -1,7 +1,6 @@
 import os
 import random
 import sys
-
 import pygame
 
 
@@ -82,20 +81,6 @@ def game_over_screen():
 
 
 def main():
-    def load_image(name, color_key=None):
-        fullname = os.path.join('data', name)
-        try:
-            image = pygame.image.load(fullname)
-        except pygame.error as message:
-            print('Не удаётся загрузить:', name)
-            raise SystemExit(message)
-        image = image.convert_alpha()
-        if color_key is not None:
-            if color_key == -1:
-                color_key = image.get_at((0, 0))
-            image.set_colorkey(color_key)
-        return image
-
     class Bird(pygame.sprite.Sprite):
         def __init__(self, radius, x, y):
             super().__init__(all_sprites)
@@ -168,7 +153,7 @@ def main():
             self.rect.x = 0
             self.rect.y = 0
 
-    pygame.display.set_caption('test_bird_window')
+    pygame.display.set_caption('Flappy Bird')
     all_sprites = pygame.sprite.Group()
 
     size = weight, height = 800, 600
@@ -181,10 +166,10 @@ def main():
     Ground()
     MYEVENTTYPE = pygame.USEREVENT + 1
     pygame.time.set_timer(MYEVENTTYPE, 1300)
+    flag = True
     eazy = 300
     time = 0
     running = True
-    ans = False
     while running:
         for event in pygame.event.get():
             if event.type == MYEVENTTYPE:
@@ -193,14 +178,17 @@ def main():
                 if time == 20 and eazy > 100:
                     eazy -= 40
                     time = 0
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+                if flag:
+                    flag = False
+                    pygame.time.set_timer(MYEVENTTYPE, 1300)
                 br.click_event()
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
         screen.fill(pygame.Color("black"))
-        all_sprites.update(event)
+        all_sprites.update()
         all_sprites.draw(screen)
         borders.draw(screen)
         pygame.display.flip()
@@ -209,4 +197,5 @@ def main():
 
 
 if __name__ == '__main__':
+    start_screen()
     main()
