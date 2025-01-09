@@ -180,19 +180,7 @@ def main():
         def get_height(self):
             return 20
 
-    def make_road(eazy, time):
-        if event.type == MYEVENTTYPE:
-            time += 1
-            if time % 10 == 0 and eazy > 100:
-                eazy -= 40
-            if time // 20 >= 1:
-                is_pipe = random.choice((False, True))
-                if is_pipe:
-                    Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy)
-                else:
-                    Ball()
-            else:
-                Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy)
+
 
     pygame.display.set_caption('Flappy Bird')
     all_sprites = pygame.sprite.Group()
@@ -214,7 +202,18 @@ def main():
     while running:
         for event in pygame.event.get():
             if not (pause):
-                make_road(eazy, time)
+                if event.type == MYEVENTTYPE:
+                    time += 1
+                    if time % 10 == 0 and eazy > 100:
+                        eazy -= 40
+                    if time // 20 >= 1:
+                        is_pipe = random.choice((False, True))
+                        if is_pipe:
+                            Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy)
+                        else:
+                            Ball()
+                    else:
+                        Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy)
             if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
                 if flag:
                     flag = False
