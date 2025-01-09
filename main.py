@@ -93,7 +93,7 @@ def main():
 
         def update(self, *ev):
             nonlocal running
-            for i in pipes.sprites():
+            for i in obstacles.sprites():
                 if pygame.sprite.collide_mask(self, i):
                     running = False
             if pygame.sprite.spritecollideany(self, borders):
@@ -108,7 +108,7 @@ def main():
     class Pipe(pygame.sprite.Sprite):
         def __init__(self, y, ez):
             super().__init__(all_sprites)
-            self.add(pipes)
+            self.add(obstacles)
             self.y = y
             self.ez = ez
             self.image = pygame.Surface([50, height])
@@ -118,20 +118,41 @@ def main():
             self.image.set_colorkey(pygame.Color('white'))
             self.mask = pygame.mask.from_surface(self.image)
             self.rect = self.image.get_rect()
-            self.rect.x = weight
+            self.rect.x = width
             self.rect.y = 0
             self.v = 5
 
         def update(self, *args, **kwargs):
             self.rect.x -= self.v
+            if self.rect.x + 50 == 0:
+                self.kill()
+
+    class Ball(pygame.sprite.Sprite):
+        def __init__(self):
+            super().__init__(all_sprites)
+            self.add(obstacles)
+            radius = 20
+            self.radius = radius
+            self.vel_y = random.choice([-1, 1]) * 10
+            self.vel_x = 5
+            self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA, 32)
+            pygame.draw.circle(self.image, pygame.Color("purple"), (radius, radius), radius)
+            self.rect = pygame.Rect(width, random.choice(
+                range(cl.get_height(), height - 2 * radius - gr.get_height(), abs(self.vel_y))), 2 * radius, 2 * radius)
+
+        def update(self, *args, **kwargs):
+            self.rect.x -= self.vel_x
+            self.rect.y += self.vel_y
             if self.rect.x + 40 == 0:
                 self.kill()
+            if pygame.sprite.spritecollideany(self, borders):
+                self.vel_y = - self.vel_y
 
     class Ground(pygame.sprite.Sprite):
         def __init__(self):
             super().__init__(all_sprites)
             self.add(borders)
-            self.image = pygame.Surface([weight, 20])
+            self.image = pygame.Surface([width, 20])
             self.rect = self.image.get_rect()
             self.image.fill('brown')
             self.image.set_colorkey(pygame.Color('white'))
@@ -140,11 +161,14 @@ def main():
             self.rect.x = 0
             self.rect.y = height - 20
 
+        def get_height(self):
+            return 20
+
     class Clouds(pygame.sprite.Sprite):
         def __init__(self):
             super().__init__(all_sprites)
             self.add(borders)
-            self.image = pygame.Surface([weight, 20])
+            self.image = pygame.Surface([width, 20])
             self.rect = self.image.get_rect()
             self.image.fill('blue')
             self.image.set_colorkey(pygame.Color('white'))
@@ -153,44 +177,62 @@ def main():
             self.rect.x = 0
             self.rect.y = 0
 
+        def get_height(self):
+            return 20
+
+    def make_road(eazy, time):
+        if event.type == MYEVENTTYPE:
+            time += 1
+            if time % 10 == 0 and eazy > 100:
+                eazy -= 40
+            if time // 20 >= 1:
+                is_pipe = random.choice((False, True))
+                if is_pipe:
+                    Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy)
+                else:
+                    Ball()
+            else:
+                Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy)
+
     pygame.display.set_caption('Flappy Bird')
     all_sprites = pygame.sprite.Group()
 
-    size = weight, height = 800, 600
+    size = width, height = 800, 600
     screen = pygame.display.set_mode(size)
     br = Bird(20, 100, 300)
     clock = pygame.time.Clock()
-    pipes = pygame.sprite.Group()
+    obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
-    Clouds()
-    Ground()
+    cl = Clouds()
+    gr = Ground()
     MYEVENTTYPE = pygame.USEREVENT + 1
-    pygame.time.set_timer(MYEVENTTYPE, 1300)
     flag = True
+    pause = False
     eazy = 300
     time = 0
     running = True
     while running:
         for event in pygame.event.get():
-            if event.type == MYEVENTTYPE:
-                Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy)
-                time += 1
-                if time == 20 and eazy > 100:
-                    eazy -= 40
-                    time = 0
+            if not (pause):
+                make_road(eazy, time)
             if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
                 if flag:
                     flag = False
                     pygame.time.set_timer(MYEVENTTYPE, 1300)
                 br.click_event()
+                pause = False
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
-        screen.fill(pygame.Color("black"))
-        all_sprites.update()
-        all_sprites.draw(screen)
-        borders.draw(screen)
+                if pause:
+                    running = False
+                else:
+                    pause = True
+        if not (pause):
+            screen.fill(pygame.Color("black"))
+            all_sprites.update()
+            all_sprites.draw(screen)
+            borders.draw(screen)
         pygame.display.flip()
         clock.tick(50)
     pygame.quit()
