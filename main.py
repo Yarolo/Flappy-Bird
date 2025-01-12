@@ -24,9 +24,22 @@ def start_screen():
         def draw(self, screen):
             screen.blit(self.image, (0, 0))
 
-    background = Background("фон.jpg", 800, 600)
+    background = Background("background-day.png", 800, 600)
     screen = background.screen
     clock = pygame.time.Clock()
+
+
+    bird_images = {
+        'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
+        'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
+        'down': pygame.image.load(os.path.join('data', 'bluebird-downflap.png')).convert_alpha()
+    }
+    bird_state = 'mid'
+    bird_image = bird_images[bird_state]
+    bird_rect = bird_image.get_rect(center=(100, 300))
+    animation_timer = 0
+    animation_speed = 10
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -39,7 +52,9 @@ def start_screen():
                     background.show_rules = not background.show_rules
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 return
+
         background.draw(screen)
+        screen.blit(bird_image, bird_rect)
         rules_button_text = background.font.render("Правила", True, (0, 0, 0))
         rules_button_rect = rules_button_text.get_rect(topleft=(10, 10))
         screen.blit(rules_button_text, rules_button_rect)
@@ -55,6 +70,19 @@ def start_screen():
             screen.get_width() // 2 - background.font.size("Нажмите пробел, чтобы начать")[0] // 2,
             screen.get_height() // 2 - background.font.size("Нажмите пробел, чтобы начать")[
                 1] // 2 + 100))
+
+
+
+        animation_timer += 1
+        if animation_timer >= animation_speed:
+            animation_timer = 0
+            if bird_state == 'mid':
+                bird_state = 'up'
+            elif bird_state == 'up':
+                bird_state = 'down'
+            else:
+                bird_state = 'mid'
+            bird_image = bird_images[bird_state]
 
         pygame.display.flip()
         clock.tick(60)
@@ -82,14 +110,18 @@ def game_over_screen():
 
 def main():
     class Bird(pygame.sprite.Sprite):
-        def __init__(self, radius, x, y):
+        def __init__(self, x, y):
             super().__init__(all_sprites)
-            self.radius = radius
-            self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA, 32)
-            pygame.draw.circle(self.image, pygame.Color("red"), (radius, radius), radius)
-            self.rect = pygame.Rect(x, y, 2 * radius, 2 * radius)
+            self.images = {
+                'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
+                'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
+                'down': pygame.image.load(os.path.join('data', 'bluebird-downflap.png')).convert_alpha()
+            }
+            self.image = self.images['mid']
+            self.rect = self.image.get_rect(center=(x, y))
             self.vel = 0
             self.gravity = 0
+            self.state = 'mid'
 
         def update(self, *ev):
             nonlocal running
@@ -101,6 +133,15 @@ def main():
             self.rect.y += self.vel
             self.vel += self.gravity
 
+            if self.vel < 0:
+                self.state = 'up'
+            elif self.vel > 0:
+                self.state = 'down'
+            else:
+                self.state = 'mid'
+
+            self.image = self.images[self.state]
+
         def click_event(self):
             self.gravity = 1
             self.vel = -10
@@ -109,15 +150,18 @@ def main():
         def __init__(self, y, ez):
             super().__init__(all_sprites)
             self.add(obstacles)
-            self.y = y
+            self.y = random.randint(50, height - 200)
             self.ez = ez
+            self.pipe_image = pygame.image.load('data/pipe.png')
             self.image = pygame.Surface([50, height])
+            self.image.blit(pygame.transform.flip(self.pipe_image, False, True), (0, 0))
+            self.image.blit(self.pipe_image, (0, self.y + self.ez // 2 + 100))
             self.rect = self.image.get_rect()
-            self.image.fill('green')
-            self.image.fill(pygame.Color('white'), pygame.Rect(0, self.y - self.ez // 2, 50, self.ez))
-            self.image.set_colorkey(pygame.Color('white'))
-            self.mask = pygame.mask.from_surface(self.image)
-            self.rect = self.image.get_rect()
+            self.top_mask = pygame.mask.from_surface(pygame.transform.flip(self.pipe_image, False, True))
+            self.bottom_mask = pygame.mask.from_surface(self.pipe_image)
+            self.mask = pygame.mask.Mask((50, height), fill=False)
+            self.mask.draw(self.top_mask, (0, 0))
+            self.mask.draw(self.bottom_mask, (0, self.y + self.ez // 2 + 100))
             self.rect.x = width
             self.rect.y = 0
             self.v = 5
@@ -126,6 +170,7 @@ def main():
             self.rect.x -= self.v
             if self.rect.x + 50 == 0:
                 self.kill()
+
 
     class Ball(pygame.sprite.Sprite):
         def __init__(self):
@@ -152,9 +197,8 @@ def main():
         def __init__(self):
             super().__init__(all_sprites)
             self.add(borders)
-            self.image = pygame.Surface([width, 20])
+            self.image = pygame.transform.scale(pygame.image.load(os.path.join("data", "base.png")), (width, 20))
             self.rect = self.image.get_rect()
-            self.image.fill('brown')
             self.image.set_colorkey(pygame.Color('white'))
             self.mask = pygame.mask.from_surface(self.image)
             self.rect = self.image.get_rect()
@@ -187,7 +231,7 @@ def main():
 
     size = width, height = 800, 600
     screen = pygame.display.set_mode(size)
-    br = Bird(20, 100, 300)
+    br = Bird(100, 300)
     clock = pygame.time.Clock()
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
@@ -198,6 +242,9 @@ def main():
     pause = False
     eazy = 300
     time = 0
+    background_image = pygame.transform.scale(pygame.image.load(os.path.join("data", "background-day.png")),
+                                              (width, height))
+
     running = True
     while running:
         for event in pygame.event.get():
@@ -222,20 +269,19 @@ def main():
                 pause = False
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                if pause:
-                    running = False
-                else:
-                    pause = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if pause:
+                        running = False
+                    else:
+                        pause = True
         if not (pause):
-            screen.fill(pygame.Color("black"))
+            screen.blit(background_image, (0, 0))
             all_sprites.update()
             all_sprites.draw(screen)
             borders.draw(screen)
         pygame.display.flip()
         clock.tick(50)
-    pygame.quit()
-
 
 if __name__ == '__main__':
     start_screen()
