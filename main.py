@@ -28,7 +28,6 @@ def start_screen():
     screen = background.screen
     clock = pygame.time.Clock()
 
-
     bird_images = {
         'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
         'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
@@ -70,8 +69,6 @@ def start_screen():
             screen.get_width() // 2 - background.font.size("Нажмите пробел, чтобы начать")[0] // 2,
             screen.get_height() // 2 - background.font.size("Нажмите пробел, чтобы начать")[
                 1] // 2 + 100))
-
-
 
         animation_timer += 1
         if animation_timer >= animation_speed:
@@ -152,16 +149,23 @@ def main():
             self.add(obstacles)
             self.y = random.randint(50, height - 200)
             self.ez = ez
-            self.pipe_image = pygame.image.load('data/pipe.png')
-            self.image = pygame.Surface([50, height])
-            self.image.blit(pygame.transform.flip(self.pipe_image, False, True), (0, 0))
-            self.image.blit(self.pipe_image, (0, self.y + self.ez // 2 + 100))
+            self.pipe_image_mid = pygame.image.load(os.path.join('data', 'pipe_mid.png'))
+            self.pipe_image_up = pygame.image.load(os.path.join('data', 'pipe_up.png'))
+            self.image = pygame.Surface([52, height])
+            self.image.fill('white')
+
+            self.upper_limit = self.y - self.ez // 2
+            self.lower_limit = self.y - self.ez // 2 + self.ez
+            for i in range(self.upper_limit - self.pipe_image_up.get_height()):
+                self.image.blit(self.pipe_image_mid, (0, i))
+            self.image.blit(pygame.transform.flip(self.pipe_image_up, False, True),
+                            (0, self.upper_limit - self.pipe_image_up.get_height()))
+            self.image.blit(self.pipe_image_up, (0, self.lower_limit))
+            for i in range(self.lower_limit + self.pipe_image_up.get_height(), height):
+                self.image.blit(self.pipe_image_mid, (0, i))
+            self.image.set_colorkey(('white'))
+            self.mask = pygame.mask.from_surface(self.image)
             self.rect = self.image.get_rect()
-            self.top_mask = pygame.mask.from_surface(pygame.transform.flip(self.pipe_image, False, True))
-            self.bottom_mask = pygame.mask.from_surface(self.pipe_image)
-            self.mask = pygame.mask.Mask((50, height), fill=False)
-            self.mask.draw(self.top_mask, (0, 0))
-            self.mask.draw(self.bottom_mask, (0, self.y + self.ez // 2 + 100))
             self.rect.x = width
             self.rect.y = 0
             self.v = 5
@@ -170,7 +174,6 @@ def main():
             self.rect.x -= self.v
             if self.rect.x + 50 == 0:
                 self.kill()
-
 
     class Ball(pygame.sprite.Sprite):
         def __init__(self):
@@ -223,8 +226,6 @@ def main():
 
         def get_height(self):
             return 20
-
-
 
     pygame.display.set_caption('Flappy Bird')
     all_sprites = pygame.sprite.Group()
@@ -282,6 +283,7 @@ def main():
             borders.draw(screen)
         pygame.display.flip()
         clock.tick(50)
+
 
 if __name__ == '__main__':
     start_screen()
