@@ -106,6 +106,21 @@ def game_over_screen():
 
 
 def main():
+    pygame.display.set_caption('Flappy Bird')
+    all_sprites = pygame.sprite.Group()
+    obstacles = pygame.sprite.Group()
+    borders = pygame.sprite.Group()
+    font = pygame.font.Font(None, 36)
+
+    class Main:
+        def __init__(self):
+            self.score = 0
+
+        def update_score(self):
+            self.score += 1
+
+    main = Main()
+
     class Bird(pygame.sprite.Sprite):
         def __init__(self, x, y):
             super().__init__(all_sprites)
@@ -140,7 +155,7 @@ def main():
             self.image = self.images[self.state]
 
         def click_event(self):
-            self.gravity = 1.5
+            self.gravity = 1.123
             self.vel = -10
 
     class Pipe(pygame.sprite.Sprite):
@@ -169,10 +184,14 @@ def main():
             self.rect.x = width
             self.rect.y = 0
             self.v = 5
+            self.passed = False
 
         def update(self, *args, **kwargs):
             self.rect.x -= self.v
-            if self.rect.x + 50 == 0:
+            if self.rect.x + 50 == 0 and not self.passed:
+                self.passed = True
+                main.update_score()
+            if self.rect.x + 50 < 0:
                 self.kill()
 
     class Ball(pygame.sprite.Sprite):
@@ -281,6 +300,8 @@ def main():
             all_sprites.update()
             all_sprites.draw(screen)
             borders.draw(screen)
+            text = font.render(str(main.score), True, (0, 0, 0))
+            screen.blit(text, (width // 2 - text.get_width() // 2, height // 2 - text.get_height() // 2))
         pygame.display.flip()
         clock.tick(50)
 
