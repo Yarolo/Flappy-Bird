@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+
 import pygame
 
 
@@ -85,24 +86,23 @@ def start_screen():
         clock.tick(60)
 
 
-def game_over_screen():
-    def game_over(self):
-        self.background.draw(self.screen)
-        self.all_sprites.draw(self.screen)
-        self.trubs.draw(self.screen)
-        self.screen.blit(self.background.font.render("Игра окончена", True, (0, 0, 0)), (200, 300))
-        self.screen.blit(self.background.font.render("Нажмите пробел, чтобы начать заново", True, (0, 0, 0)),
-                         (150, 350))
-        pygame.display.flip()
-        waiting = True
-        while waiting:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    waiting = False
-                    self.start_game()
+def game_over(self):
+    self.background.draw(self.screen)
+    self.all_sprites.draw(self.screen)
+    self.trubs.draw(self.screen)
+    self.screen.blit(self.background.font.render("Игра окончена", True, (0, 0, 0)), (200, 300))
+    self.screen.blit(self.background.font.render("Нажмите пробел, чтобы начать заново", True, (0, 0, 0)),
+                     (150, 350))
+    pygame.display.flip()
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                waiting = False
+                self.start_game()
 
 
 def main():
@@ -211,6 +211,7 @@ def main():
             self.rect.x -= self.vel_x
             self.rect.y += self.vel_y
             if self.rect.x + 40 == 0:
+                main.update_score()
                 self.kill()
             if pygame.sprite.spritecollideany(self, borders):
                 self.vel_y = - self.vel_y
@@ -264,6 +265,9 @@ def main():
     time = 0
     background_image = pygame.transform.scale(pygame.image.load(os.path.join("data", "background-day.png")),
                                               (width, height))
+    score_images = []
+    for i in range(10):
+        score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
 
     running = True
     while running:
@@ -300,8 +304,11 @@ def main():
             all_sprites.update()
             all_sprites.draw(screen)
             borders.draw(screen)
-            text = font.render(str(main.score), True, (0, 0, 0))
-            screen.blit(text, (width // 2 - text.get_width() // 2, height // 2 - text.get_height() // 2))
+            score = main.score
+            x = width // 2 - len(str(score)) * 20 // 2
+            for digit in str(score):
+                screen.blit(score_images[int(digit)], (x, height // 2 - 20))
+                x += 20
         pygame.display.flip()
         clock.tick(50)
 
