@@ -140,7 +140,7 @@ def main():
             self.image = self.images[self.state]
 
         def click_event(self):
-            self.gravity = 1
+            self.gravity = 1.5
             self.vel = -10
 
     class Pipe(pygame.sprite.Sprite):
