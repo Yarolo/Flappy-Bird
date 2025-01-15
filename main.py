@@ -110,7 +110,7 @@ def main():
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
-    font = pygame.font.Font(None, 36)
+    font = pygame.font.Font(None, 35)
 
     class Main:
         def __init__(self):
