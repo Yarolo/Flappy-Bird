@@ -110,7 +110,6 @@ def main():
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
-    font = pygame.font.Font(None, 35)
 
     class Main:
         def __init__(self):
@@ -198,23 +197,23 @@ def main():
         def __init__(self):
             super().__init__(all_sprites)
             self.add(obstacles)
-            radius = 20
-            self.radius = radius
-            self.vel_y = random.choice([-1, 1]) * 10
-            self.vel_x = 5
-            self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA, 32)
-            pygame.draw.circle(self.image, pygame.Color("purple"), (radius, radius), radius)
-            self.rect = pygame.Rect(width, random.choice(
-                range(cl.get_height(), height - 2 * radius - gr.get_height(), abs(self.vel_y))), 2 * radius, 2 * radius)
+            self.image = pygame.transform.scale(pygame.image.load(os.path.join('data', '1509985113_preview_qbert.png')),
+                                                (120, 120))
+            self.rect = self.image.get_rect()
+            self.rect.x = width
+            self.vel_x = -5
+            self.vel_y = random.choice([-5, 5])
+            self.mask = pygame.mask.from_surface(self.image)
+            if self.rect.y + self.image.get_height() > height - 20 or self.rect.y < 0:
+                self.vel_y = -self.vel_y + random.uniform(-1, 1)
 
         def update(self, *args, **kwargs):
-            self.rect.x -= self.vel_x
+            self.rect.x += self.vel_x
             self.rect.y += self.vel_y
-            if self.rect.x + 40 == 0:
-                main.update_score()
+            if self.rect.y + self.image.get_height() > height - 20 or self.rect.y < 0:
+                self.vel_y *= -1
+            if self.rect.x + self.image.get_width() < 0:
                 self.kill()
-            if pygame.sprite.spritecollideany(self, borders):
-                self.vel_y = - self.vel_y
 
     class Ground(pygame.sprite.Sprite):
         def __init__(self):
