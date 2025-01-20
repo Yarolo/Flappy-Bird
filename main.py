@@ -163,7 +163,7 @@ def main():
             self.add(obstacles)
             self.y = random.randint(50, height - 200)
             self.ez = ez
-            self.pipe_image_mid = pygame.image.load(os.path.join('data', 'pipe_mid.png'))
+            self.pipe_image_mid = pygame.image.load(os.path.join('data', 'pipe_mid.png')).convert_alpha()
             self.pipe_image_up = pygame.image.load(os.path.join('data', 'pipe_up.png'))
             self.image = pygame.Surface([52, height])
             self.image.fill('white')
@@ -197,8 +197,8 @@ def main():
         def __init__(self):
             super().__init__(all_sprites)
             self.add(obstacles)
-            self.image = pygame.transform.scale(pygame.image.load(os.path.join('data', '1509985113_preview_qbert.png')),
-                                                (120, 120))
+            self.image = pygame.transform.scale(pygame.image.load(os.path.join('data', 'spiked_ball.png')),
+                                                (60, 60))
             self.rect = self.image.get_rect()
             self.rect.x = width
             self.vel_x = -5
@@ -234,10 +234,9 @@ def main():
         def __init__(self):
             super().__init__(all_sprites)
             self.add(borders)
-            self.image = pygame.Surface([width, 20])
+            self.image = pygame.transform.scale(pygame.image.load(os.path.join("data", "sky.png")), (width, 20)).convert_alpha()
             self.rect = self.image.get_rect()
-            self.image.fill('blue')
-            self.image.set_colorkey(pygame.Color('white'))
+
             self.mask = pygame.mask.from_surface(self.image)
             self.rect = self.image.get_rect()
             self.rect.x = 0
