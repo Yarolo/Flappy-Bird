@@ -6,6 +6,28 @@ import pygame
 
 
 def start_screen():
+    class PlayButton(pygame.sprite.Sprite):
+        def __init__(self):
+            super().__init__(buttons)
+            self.unclicked = pygame.image.load(os.path.join('data', 'unclicked_play_button.png')).convert_alpha()
+            self.clicked = pygame.image.load(os.path.join('data', 'clicked_play_button.png')).convert_alpha()
+            self.unclicked = pygame.transform.scale(self.unclicked, (200, 100))
+            self.clicked = pygame.transform.scale(self.clicked, (200, 100))
+            self.image = self.unclicked
+            self.rect = self.image.get_rect()
+            self.rect.x = 300
+            self.rect.y = 350
+
+        def update(self, *args, **kwargs):
+            nonlocal running
+            if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
+                    self.rect.collidepoint(args[0].pos):
+                self.image = self.clicked
+            if args and args[0].type == pygame.MOUSEBUTTONUP:
+                self.image = self.unclicked
+                if self.rect.collidepoint(args[0].pos):
+                    running = False
+
     class Background:
         def __init__(self, filename, screen_width, screen_height):
             pygame.init()
@@ -28,7 +50,7 @@ def start_screen():
     background = Background("background-day.png", 800, 600)
     screen = background.screen
     clock = pygame.time.Clock()
-
+    buttons = pygame.sprite.Group()
     bird_images = {
         'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
         'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
@@ -39,8 +61,9 @@ def start_screen():
     bird_rect = bird_image.get_rect(center=(100, 300))
     animation_timer = 0
     animation_speed = 10
-
-    while True:
+    PlayButton()
+    running = True
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -66,11 +89,6 @@ def start_screen():
                 screen.blit(text, (10, y))
                 y += text.get_height() + 5
 
-        screen.blit(background.font.render("Нажмите пробел, чтобы начать", True, (0, 0, 0)), (
-            screen.get_width() // 2 - background.font.size("Нажмите пробел, чтобы начать")[0] // 2,
-            screen.get_height() // 2 - background.font.size("Нажмите пробел, чтобы начать")[
-                1] // 2 + 100))
-
         animation_timer += 1
         if animation_timer >= animation_speed:
             animation_timer = 0
@@ -81,7 +99,8 @@ def start_screen():
             else:
                 bird_state = 'mid'
             bird_image = bird_images[bird_state]
-
+        buttons.update(event)
+        buttons.draw(screen)
         pygame.display.flip()
         clock.tick(60)
 
@@ -112,8 +131,6 @@ def game_over(screen):
                 waiting = False
                 start_screen()
                 main()
-
-
 
 
 def main():
@@ -327,6 +344,7 @@ def main():
         clock.tick(50)
     if game_over_flag:
         game_over(screen)
+
 
 if __name__ == '__main__':
     start_screen()
