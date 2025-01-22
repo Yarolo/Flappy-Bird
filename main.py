@@ -86,23 +86,22 @@ def start_screen():
         clock.tick(60)
 
 
-def game_over(width, height, screen, background_image, all_sprites, obstacles, last_frame):
-    screen.blit(last_frame, (0, 0))
+def game_over(screen):
     game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
-    game_over_rect = game_over_image.get_rect(center=(width // 2, height // 2))
+    game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     clock = pygame.time.Clock()
     for i in range(255):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-        screen.blit(last_frame, (0, 0))
-        s = pygame.Surface((width, height))
+        s = pygame.Surface((screen.get_width(), screen.get_height()))
+        s.get_height()
         s.set_alpha(i)
         s.blit(game_over_image, game_over_rect)
         screen.blit(s, (0, 0))
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(40)
     waiting = True
     while waiting:
         for event in pygame.event.get():
@@ -148,11 +147,14 @@ def main():
 
         def update(self, *ev):
             nonlocal running
+            nonlocal game_over_flag
             for i in obstacles.sprites():
                 if pygame.sprite.collide_mask(self, i):
                     running = False
+                    game_over_flag = True
             if pygame.sprite.spritecollideany(self, borders):
                 running = False
+                game_over_flag = True
             self.rect.y += self.vel
             self.vel += self.gravity
 
@@ -321,21 +323,10 @@ def main():
             for digit in str(score):
                 screen.blit(score_images[int(digit)], (x, height // 2 - 20))
                 x += 20
-            if pygame.sprite.spritecollideany(br, obstacles) or br.rect.y < 0 or br.rect.y > height - 20:
-                screen.blit(background_image, (0, 0))
-                all_sprites.draw(screen)
-                borders.draw(screen)
-                last_frame = screen.copy()
-                game_over_flag = True
-                running = False
-                break
-
         pygame.display.flip()
         clock.tick(50)
-    last_frame = screen.copy()
     if game_over_flag:
-        game_over(width, height, screen, background_image, all_sprites, obstacles, last_frame)
-
+        game_over(screen)
 
 if __name__ == '__main__':
     start_screen()
