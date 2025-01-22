@@ -86,14 +86,23 @@ def start_screen():
         clock.tick(60)
 
 
-def game_over(self):
-    self.background.draw(self.screen)
-    self.all_sprites.draw(self.screen)
-    self.trubs.draw(self.screen)
-    self.screen.blit(self.background.font.render("Игра окончена", True, (0, 0, 0)), (200, 300))
-    self.screen.blit(self.background.font.render("Нажмите пробел, чтобы начать заново", True, (0, 0, 0)),
-                     (150, 350))
-    pygame.display.flip()
+def game_over(width, height, screen, background_image, all_sprites, obstacles, last_frame):
+    screen.blit(last_frame, (0, 0))
+    game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
+    game_over_rect = game_over_image.get_rect(center=(width // 2, height // 2))
+    clock = pygame.time.Clock()
+    for i in range(255):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        screen.blit(last_frame, (0, 0))
+        s = pygame.Surface((width, height))
+        s.set_alpha(i)
+        s.blit(game_over_image, game_over_rect)
+        screen.blit(s, (0, 0))
+        pygame.display.flip()
+        clock.tick(60)
     waiting = True
     while waiting:
         for event in pygame.event.get():
@@ -102,7 +111,10 @@ def game_over(self):
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 waiting = False
-                self.start_game()
+                start_screen()
+                main()
+
+
 
 
 def main():
@@ -201,7 +213,7 @@ def main():
                                                 (60, 60))
             self.rect = self.image.get_rect()
             self.rect.x = width
-            self.vel_x = -5
+            self.vel_x = - 5
             self.vel_y = random.choice([-5, 5])
             self.mask = pygame.mask.from_surface(self.image)
             if self.rect.y + self.image.get_height() > height - 20 or self.rect.y < 0:
@@ -234,7 +246,8 @@ def main():
         def __init__(self):
             super().__init__(all_sprites)
             self.add(borders)
-            self.image = pygame.transform.scale(pygame.image.load(os.path.join("data", "sky.png")), (width, 20)).convert_alpha()
+            self.image = pygame.transform.scale(pygame.image.load(os.path.join("data", "sky.png")),
+                                                (width, 20)).convert_alpha()
             self.rect = self.image.get_rect()
 
             self.mask = pygame.mask.from_surface(self.image)
@@ -268,6 +281,7 @@ def main():
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
 
     running = True
+    game_over_flag = False
     while running:
         for event in pygame.event.get():
             if not (pause):
@@ -307,8 +321,20 @@ def main():
             for digit in str(score):
                 screen.blit(score_images[int(digit)], (x, height // 2 - 20))
                 x += 20
+            if pygame.sprite.spritecollideany(br, obstacles) or br.rect.y < 0 or br.rect.y > height - 20:
+                screen.blit(background_image, (0, 0))
+                all_sprites.draw(screen)
+                borders.draw(screen)
+                last_frame = screen.copy()
+                game_over_flag = True
+                running = False
+                break
+
         pygame.display.flip()
         clock.tick(50)
+    last_frame = screen.copy()
+    if game_over_flag:
+        game_over(width, height, screen, background_image, all_sprites, obstacles, last_frame)
 
 
 if __name__ == '__main__':
