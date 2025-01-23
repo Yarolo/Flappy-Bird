@@ -132,7 +132,7 @@ def game_over(screen, last_frame, score):
                 x += 20
         screen.blit(s, (0, 0))
         pygame.display.flip()
-        clock.tick(25)
+        clock.tick(24)
     for i in range(score + 1):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
