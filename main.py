@@ -105,10 +105,16 @@ def start_screen():
         clock.tick(60)
 
 
-def game_over(screen):
+def game_over(screen, last_frame, score):
     game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     clock = pygame.time.Clock()
+    score_images = []
+    for i in range(10):
+        score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
+    x = screen.get_width() // 2 - len(str(score)) * 20 // 2
+    y = game_over_rect.bottom + 20
+    current_score = 0
     for i in range(255):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -118,9 +124,48 @@ def game_over(screen):
         s.get_height()
         s.set_alpha(i)
         s.blit(game_over_image, game_over_rect)
+        if i > 100:
+            score_str = str(min(i - 100, score))
+            x = screen.get_width() // 2 - len(str(score)) * 20 // 2
+            for digit in score_str:
+                s.blit(score_images[int(digit)], (x, y))
+                x += 20
         screen.blit(s, (0, 0))
         pygame.display.flip()
-        clock.tick(40)
+        clock.tick(25)
+    for i in range(score + 1):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        s = pygame.Surface((screen.get_width(), screen.get_height()))
+        s.blit(game_over_image, game_over_rect)
+        score_str = str(i)
+        x = screen.get_width() // 2 - len(str(score)) * 20 // 2
+        for digit in score_str:
+            s.blit(score_images[int(digit)], (x, y))
+            x += 20
+        screen.blit(s, (0, 0))
+        pygame.display.flip()
+        if i < score // 8:
+            clock.tick(200)
+        elif i < score // 7:
+            clock.tick(180)
+        elif i < score // 6:
+            clock.tick(150)
+        elif i < score // 5:
+            clock.tick(130)
+        elif i < score // 4:
+            clock.tick(100)
+        elif i < score // 3:
+            clock.tick(80)
+        elif i < score // 2:
+            clock.tick(50)
+        elif i < score * 3 // 4:
+            clock.tick(20)
+        else:
+            clock.tick(5)
+
     waiting = True
     while waiting:
         for event in pygame.event.get():
@@ -343,7 +388,7 @@ def main():
         pygame.display.flip()
         clock.tick(50)
     if game_over_flag:
-        game_over(screen)
+        game_over(screen, screen.copy(), main.score)
 
 
 if __name__ == '__main__':
