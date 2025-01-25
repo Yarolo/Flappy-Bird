@@ -28,6 +28,7 @@ class Bird(pygame.sprite.Sprite):
         self.vel = 0
         self.gravity = 0
         self.state = 'mid'
+        self.angle = 0
 
     def update(self, *ev):
         global running
@@ -38,15 +39,17 @@ class Bird(pygame.sprite.Sprite):
             running = False
         self.rect.y += self.vel
         self.vel += self.gravity
-
         if self.vel < 0:
             self.state = 'up'
         elif self.vel > 0:
             self.state = 'down'
         else:
             self.state = 'mid'
-
         self.image = self.images[self.state]
+        self.angle = -self.vel * 4
+        self.angle = max(-60, min(60, self.angle))
+        self.image = pygame.transform.rotate(self.images[self.state], self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def click_event(self):
         self.gravity = 1.123
@@ -63,7 +66,6 @@ class Pipe(pygame.sprite.Sprite):
         self.pipe_image_up = pygame.image.load(os.path.join('data', 'pipe_up.png'))
         self.image = pygame.Surface([52, height])
         self.image.fill('white')
-
         self.upper_limit = self.y - self.ez // 2
         self.lower_limit = self.y - self.ez // 2 + self.ez
         for i in range(self.upper_limit - self.pipe_image_up.get_height()):
