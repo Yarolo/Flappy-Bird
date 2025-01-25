@@ -348,6 +348,7 @@ def main():
                 x += 20
         pygame.display.flip()
         clock.tick(50)
+    pygame.mouse.set_visible(True)
 
     if not running:
         game_over_screen = True
