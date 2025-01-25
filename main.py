@@ -328,10 +328,7 @@ def main():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                        start_screen()
-                        main()
-                        break
+
         if not (pause):
             screen.blit(background_image, (0, 0))
             all_sprites.update()
