@@ -97,7 +97,10 @@ class Ball(pygame.sprite.Sprite):
         super().__init__(all_sprites)
         self.height = height
         self.add(obstacles)
-        self.image = pygame.transform.scale(pygame.image.load(os.path.join('data', 'spiked_ball.png')), (60, 60))
+        self.original_image = pygame.transform.scale(
+            pygame.image.load(os.path.join('data', 'spiked_ball.png')), (60, 60)
+        ).convert_alpha()
+        self.image = self.original_image
         self.rect = self.image.get_rect()
         self.rect.x = width
         self.vel_x = -5
@@ -106,11 +109,16 @@ class Ball(pygame.sprite.Sprite):
         if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
             self.vel_y = -self.vel_y + random.uniform(-1, 1)
         self.passed = False
+        self.angle = 0
+        self.rotation_speed = 10
 
     def update(self, *args):
         global cnt
         self.rect.x += self.vel_x
         self.rect.y += self.vel_y
+        self.angle = (self.angle + self.rotation_speed) % 360
+        self.image = pygame.transform.rotate(self.original_image, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
         if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
             self.vel_y *= -1
         if self.rect.x + self.image.get_width() < 0:
