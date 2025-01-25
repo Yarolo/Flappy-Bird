@@ -26,7 +26,7 @@ class Bird(pygame.sprite.Sprite):
         self.image = self.images['mid']
         self.rect = self.image.get_rect(center=(x, y))
         self.vel = 0
-        self.gravity = 0
+        self.gravity = 1.123
         self.state = 'mid'
         self.angle = 0
 
@@ -52,7 +52,6 @@ class Bird(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.rect.center)
 
     def click_event(self):
-        self.gravity = 1.123
         self.vel = -10
 
 
@@ -201,7 +200,9 @@ running = True
 cnt = Counter()
 
 
-def game_over(screen, last_frame, score):
+
+
+def game_over(screen, score):
     game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     clock = pygame.time.Clock()
@@ -210,7 +211,6 @@ def game_over(screen, last_frame, score):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
     x = screen.get_width() // 2 - len(str(score)) * 20 // 2
     y = game_over_rect.bottom + 20
-    current_score = 0
     for i in range(255):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -262,20 +262,13 @@ def game_over(screen, last_frame, score):
         else:
             clock.tick(5)
 
-    waiting = True
-    while waiting:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                waiting = False
-                return
-
 
 def main():
     global running
     global cnt
+
+    game_over_screen = False
+    cnt.score = 0
     pygame.display.set_caption('Flappy Bird')
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
@@ -302,34 +295,43 @@ def main():
     while running:
         for event in pygame.event.get():
             if not (pause):
-                if event.type == MYEVENTTYPE:
-                    time += 1
-                    if time % 10 == 0 and eazy > 100:
-                        eazy -= 40
-                    if time // 20 >= 1:
-                        is_pipe = random.choice((False, True))
-                        if is_pipe:
+                    if event.type == MYEVENTTYPE:
+                        time += 1
+                        if time % 10 == 0 and eazy > 100:
+                            eazy -= 40
+                        if time // 20 >= 1:
+                            is_pipe = random.choice((False, True))
+                            if is_pipe:
+                                Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
+                                     height, width)
+                            else:
+                                Ball(all_sprites, obstacles, width, height)
+                        else:
                             Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
                                  height, width)
-                        else:
-                            Ball(all_sprites, obstacles, width, height)
-                    else:
-                        Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
-                             height, width)
             if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
-                if flag:
-                    flag = False
-                    pygame.time.set_timer(MYEVENTTYPE, 1300)
-                br.click_event()
-                pause = False
+                    if flag:
+                        flag = False
+                        pygame.time.set_timer(MYEVENTTYPE, 1300)
+                    br.click_event()
+                    pause = False
             if event.type == pygame.QUIT:
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    if pause:
-                        running = False
-                    else:
-                        pause = True
+                    if event.key == pygame.K_ESCAPE:
+                        if pause:
+                            running = False
+                        else:
+                            pause = True
+            else:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                        start_screen()
+                        main()
+                        break
         if not (pause):
             screen.blit(background_image, (0, 0))
             all_sprites.update()
@@ -343,7 +345,12 @@ def main():
         pygame.display.flip()
         clock.tick(50)
 
-    game_over(screen, screen.copy(), cnt.score)
+    if not running:
+        game_over_screen = True
+
+    if game_over_screen:
+        game_over(screen, cnt.score)
+        running = True
 
 
 def start_screen():
@@ -399,12 +406,13 @@ def start_screen():
             else:
                 bird_state = 'mid'
             bird_image = bird_images[bird_state]
-        buttons.update(event)
+
         buttons.draw(screen)
         pygame.display.flip()
         clock.tick(60)
 
 
 if __name__ == '__main__':
-    start_screen()
-    main()
+    while True:
+        start_screen()
+        main()
