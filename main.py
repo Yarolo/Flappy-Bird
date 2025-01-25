@@ -96,23 +96,27 @@ class Ball(pygame.sprite.Sprite):
         super().__init__(all_sprites)
         self.height = height
         self.add(obstacles)
-        self.image = pygame.transform.scale(pygame.image.load(os.path.join('data', 'spiked_ball.png')),
-                                            (60, 60))
+        self.image = pygame.transform.scale(pygame.image.load(os.path.join('data', 'spiked_ball.png')), (60, 60))
         self.rect = self.image.get_rect()
         self.rect.x = width
-        self.vel_x = - 5
+        self.vel_x = -5
         self.vel_y = random.choice([-5, 5])
         self.mask = pygame.mask.from_surface(self.image)
         if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
             self.vel_y = -self.vel_y + random.uniform(-1, 1)
+        self.passed = False
 
-    def update(self, *args, **kwargs):
+    def update(self, *args):
+        global cnt
         self.rect.x += self.vel_x
         self.rect.y += self.vel_y
         if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
             self.vel_y *= -1
         if self.rect.x + self.image.get_width() < 0:
             self.kill()
+        if self.rect.x + 50 == 0 and not self.passed:
+            self.passed = True
+            cnt.update_score()
 
 
 class Ground(pygame.sprite.Sprite):
