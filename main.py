@@ -200,8 +200,6 @@ running = True
 cnt = Counter()
 
 
-
-
 def game_over(screen, score):
     game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
@@ -295,34 +293,35 @@ def main():
     while running:
         for event in pygame.event.get():
             if not (pause):
-                    if event.type == MYEVENTTYPE:
-                        time += 1
-                        if time % 10 == 0 and eazy > 100:
-                            eazy -= 40
-                        if time // 20 >= 1:
-                            is_pipe = random.choice((False, True))
-                            if is_pipe:
-                                Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
-                                     height, width)
-                            else:
-                                Ball(all_sprites, obstacles, width, height)
-                        else:
+                pygame.mouse.set_visible(False)
+                if event.type == MYEVENTTYPE:
+                    time += 1
+                    if time % 10 == 0 and eazy > 100:
+                        eazy -= 40
+                    if time // 20 >= 1:
+                        is_pipe = random.choice((False, True))
+                        if is_pipe:
                             Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
                                  height, width)
+                        else:
+                            Ball(all_sprites, obstacles, width, height)
+                    else:
+                        Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
+                             height, width)
             if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
-                    if flag:
-                        flag = False
-                        pygame.time.set_timer(MYEVENTTYPE, 1300)
-                    br.click_event()
-                    pause = False
+                if flag:
+                    flag = False
+                    pygame.time.set_timer(MYEVENTTYPE, 1300)
+                br.click_event()
+                pause = False
             if event.type == pygame.QUIT:
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        if pause:
-                            running = False
-                        else:
-                            pause = True
+                if event.key == pygame.K_ESCAPE:
+                    if pause:
+                        running = False
+                    else:
+                        pause = True
             else:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
