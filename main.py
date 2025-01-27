@@ -236,14 +236,14 @@ cnt = Counter()
 
 def load_record():
     try:
-        with open('record.txt', 'r') as f:
+        with open('data/record.txt', 'r') as f:
             return int(f.read())
     except:
         return 0
 
 
 def save_record(record):
-    with open('record.txt', 'w') as f:
+    with open('data/record.txt', 'w') as f:
         f.write(str(record))
 
 
@@ -255,27 +255,22 @@ def game_over(screen, score):
         record = score
     game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    game_over_scr = screen.copy()
     clock = pygame.time.Clock()
     score_images = []
     for i in range(10):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
     x = screen.get_width() // 2 - len(str(score)) * 20 // 2
     y = game_over_rect.bottom + 20
-    for i in range(255):
+    for i in range(0, 256, 5):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
         s = pygame.Surface((screen.get_width(), screen.get_height()))
-        s.get_height()
         s.set_alpha(i)
+        screen.blit(game_over_scr, (0, 0))
         s.blit(game_over_image, game_over_rect)
-        if i > 100:
-            score_str = str(min(i - 100, score))
-            x = screen.get_width() // 2 - len(str(score)) * 20 // 2
-            for digit in score_str:
-                s.blit(score_images[int(digit)], (x, y))
-                x += 20
         screen.blit(s, (0, 0))
         pygame.display.flip()
         clock.tick(24)
@@ -327,6 +322,11 @@ def game_over(screen, score):
             pygame.display.flip()
             pygame.time.delay(30)
 
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
+                return
+
 
 def main():
     global running
@@ -348,7 +348,6 @@ def main():
     MYEVENTTYPE = pygame.USEREVENT + 1
     pause_screen = pygame.Surface((screen.get_width(), screen.get_height()))
     pause_screen.set_alpha(70)
-    flag = True
     pause = False
     eazy = 300
     time = 0
@@ -392,6 +391,7 @@ def main():
                 pause = True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
                 pause = False
+
         if not (pause):
             screen.blit(background_image, (0, 0))
             all_sprites.update()
