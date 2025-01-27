@@ -32,11 +32,14 @@ class Bird(pygame.sprite.Sprite):
 
     def update(self, *ev):
         global running
+        global game_over_screen
         for i in self.obstacles.sprites():
             if pygame.sprite.collide_mask(self, i):
                 running = False
+                game_over_screen = True
         if pygame.sprite.spritecollideany(self, self.borders):
             running = False
+            game_over_screen = True
         self.rect.y += self.vel
         self.vel += self.gravity
         if self.vel < 0:
@@ -46,7 +49,7 @@ class Bird(pygame.sprite.Sprite):
         else:
             self.state = 'mid'
         self.image = self.images[self.state]
-        self.angle = -self.vel * 4
+        self.angle = -self.vel * 1.5
         self.angle = max(-60, min(60, self.angle))
         self.image = pygame.transform.rotate(self.images[self.state], self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
@@ -184,6 +187,28 @@ class PlayButton(pygame.sprite.Sprite):
                 running = False
 
 
+class RollBackButton(pygame.sprite.Sprite):
+    def __init__(self, buttons):
+        super().__init__(buttons)
+        self.unclicked = pygame.image.load(os.path.join('data', 'unclicked_roll_back_button.png')).convert_alpha()
+        self.clicked = pygame.image.load(os.path.join('data', 'clicked_roll_back_button.png')).convert_alpha()
+        self.unclicked = pygame.transform.scale(self.unclicked, (80, 80))
+        self.clicked = pygame.transform.scale(self.clicked, (80, 80))
+        self.image = self.unclicked
+        self.rect = self.image.get_rect()
+        self.rect.x = 680
+        self.rect.y = 20
+
+    def update(self, *args, **kwargs):
+        global running
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
+                self.rect.collidepoint(args[0].pos):
+            self.image = self.clicked
+        if args and args[0].type == pygame.MOUSEBUTTONUP:
+            self.image = self.unclicked
+            if self.rect.collidepoint(args[0].pos):
+                running = False
+
 class Background:
     def __init__(self, filename, screen_width, screen_height):
         pygame.init()
@@ -203,7 +228,7 @@ class Background:
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
 
-
+game_over_screen = False
 running = True
 cnt = Counter()
 
@@ -272,35 +297,38 @@ def game_over(screen, score):
 def main():
     global running
     global cnt
-
-    game_over_screen = False
+    global game_over_screen
     cnt.score = 0
     pygame.display.set_caption('Flappy Bird')
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
-
+    buttons = pygame.sprite.Group()
+    rb_btn = RollBackButton(buttons)
     size = width, height = 800, 600
     screen = pygame.display.set_mode(size)
     br = Bird(100, 300, all_sprites, obstacles, borders)
     clock = pygame.time.Clock()
 
-    cl = Clouds(all_sprites, borders, width)
-    gr = Ground(all_sprites, borders, height, width)
+    Clouds(all_sprites, borders, width)
+    Ground(all_sprites, borders, height, width)
     MYEVENTTYPE = pygame.USEREVENT + 1
+    pause_screen = pygame.Surface((screen.get_width(), screen.get_height()))
+    pause_screen.set_alpha(70)
     flag = True
     pause = False
     eazy = 300
     time = 0
     background_image = pygame.transform.scale(pygame.image.load(os.path.join("data", "background-day.png")),
                                               (width, height))
+    pygame.time.set_timer(MYEVENTTYPE, 1300)
     score_images = []
     for i in range(10):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
-
     while running:
         for event in pygame.event.get():
             if not (pause):
+                rb_btn.kill()
                 pygame.mouse.set_visible(False)
                 if event.type == MYEVENTTYPE:
                     time += 1
@@ -316,25 +344,24 @@ def main():
                     else:
                         Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
                              height, width)
-            if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
-                if flag:
-                    flag = False
-                    pygame.time.set_timer(MYEVENTTYPE, 1300)
-                br.click_event()
-                pause = False
+                if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+
+                    br.click_event()
+            else:
+                pygame.mouse.set_visible(True)
+                buttons.update(event)
+                buttons.draw(screen)
+
             if event.type == pygame.QUIT:
                 sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    if pause:
-                        running = False
-                    else:
-                        pause = True
-            else:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and not pause:
+                rb_btn = RollBackButton(buttons)
+                screen.blit(pause_screen, (0, 0))
+                pause = True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
+                pause = False
+
 
         if not (pause):
             screen.blit(background_image, (0, 0))
@@ -350,15 +377,15 @@ def main():
         clock.tick(50)
     pygame.mouse.set_visible(True)
 
-    if not running:
-        game_over_screen = True
 
     if game_over_screen:
         game_over(screen, cnt.score)
-        running = True
+    running = True
+    game_over_screen = False
 
 
 def start_screen():
+    global running
     background = Background("background-day.png", 800, 600)
     screen = background.screen
     clock = pygame.time.Clock()
@@ -385,10 +412,13 @@ def start_screen():
                     topleft=(10, 10))
                 if rules_button_rect.collidepoint(event.pos):
                     background.show_rules = not background.show_rules
-            if event.type == pygame.MOUSEBUTTONDOWN and buttons.sprites()[0].rect.collidepoint(event.pos):
-                return
+            buttons.update(event)
+        if not(running):
+            running = True
+            return
 
         background.draw(screen)
+        buttons.draw(screen)
         screen.blit(bird_image, bird_rect)
         rules_button_text = background.font.render("Правила", True, (0, 0, 0))
         rules_button_rect = rules_button_text.get_rect(topleft=(10, 10))
@@ -412,7 +442,6 @@ def start_screen():
                 bird_state = 'mid'
             bird_image = bird_images[bird_state]
 
-        buttons.draw(screen)
         pygame.display.flip()
         clock.tick(60)
 
