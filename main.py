@@ -1,7 +1,7 @@
 import os
 import random
 import sys
-
+import math
 import pygame
 
 
@@ -99,6 +99,7 @@ class Ball(pygame.sprite.Sprite):
     def __init__(self, all_sprites, obstacles, width, height):
         super().__init__(all_sprites)
         self.height = height
+        self.width = width
         self.add(obstacles)
         self.original_image = pygame.transform.scale(
             pygame.image.load(os.path.join('data', 'spiked_ball.png')), (60, 60)
@@ -106,24 +107,62 @@ class Ball(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect()
         self.rect.x = width
-        self.vel_x = -5
-        self.vel_y = random.choice([-5, 5])
+        self.vel_x = -7
+        self.vel_y = random.choice([-3, -2, -1, 1, 2, 3])
         self.mask = pygame.mask.from_surface(self.image)
-        if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
-            self.vel_y = -self.vel_y + random.uniform(-1, 1)
         self.passed = False
         self.angle = 0
         self.rotation_speed = 10
+        self.movement_type = random.choice([
+            "bounce", "straight", "sinusoidal", "spiral", "zigzag", "chaotic", "static"
+        ])
+        self.level = random.choice(["top", "middle", "bottom"])
+        self.amplitude = random.randint(50, 100)
+        self.frequency = random.uniform(0.01, 0.03)
+        self.time = 0
+        self.spiral_angle = 1
+        self.chaotic_counter = 0
+        self.zigzag_direction = 1
+        if self.level == "top":
+            self.rect.y = random.randint(50, height // 3)
+        elif self.level == "middle":
+            self.rect.y = random.randint(height // 3, 2 * height // 3)
+        elif self.level == "bottom":
+            self.rect.y = random.randint(2 * height // 3, height - 50)
 
     def update(self, *args):
         global cnt
         self.rect.x += self.vel_x
-        self.rect.y += self.vel_y
+        if self.movement_type == "bounce":
+            self.rect.y += self.vel_y
+            if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
+                self.vel_y *= -1
+        elif self.movement_type == "straight":
+            pass
+        elif self.movement_type == "sinusoidal":
+            self.time += 1
+            self.rect.y = self.rect.y + self.amplitude * math.sin(self.frequency * self.time)
+        elif self.movement_type == "spiral":
+            self.spiral_angle += 0.1
+            self.rect.y = self.rect.y + 2 * math.sin(self.spiral_angle)
+            self.rect.x += 2 * math.cos(self.spiral_angle)
+        elif self.movement_type == "zigzag":
+            self.rect.y += self.vel_y * self.zigzag_direction
+            if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
+                self.zigzag_direction *= -1
+        elif self.movement_type == "chaotic":
+            self.chaotic_counter += 1
+            if self.chaotic_counter % 10 == 0:
+                self.vel_y = random.choice([-3, -2, -1, 1, 2, 3])
+            self.rect.y += self.vel_y
+            if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
+                self.vel_y *= -1
+        elif self.movement_type == "static":
+            self.rect.x -= 2
+            self.rect.y = self.rect.y
         self.angle = (self.angle + self.rotation_speed) % 360
         self.image = pygame.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
-        if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
-            self.vel_y *= -1
         if self.rect.x + self.image.get_width() < 0:
             self.kill()
         if self.rect.x + 50 == 0 and not self.passed:
@@ -366,16 +405,16 @@ def main():
                     time += 1
                     if time % 10 == 0 and eazy > 100:
                         eazy -= 40
-                    if time // 20 >= 1:
-                        is_pipe = random.choice((False, True))
-                        if is_pipe:
-                            Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
-                                 height, width)
-                        else:
-                            Ball(all_sprites, obstacles, width, height)
-                    else:
-                        Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
-                             height, width)
+
+                    # Спавн труб (по одной)
+                    Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
+                         height, width)
+
+                    # Спавн пил (от 1 до 3 за раз)
+                    num_balls = random.randint(1, 3)  # От 1 до 3 пил за раз
+                    for _ in range(num_balls):
+                        Ball(all_sprites, obstacles, width, height)
+
                 if event.type == pygame.MOUSEBUTTONDOWN or (
                         event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
                     br.click_event()
