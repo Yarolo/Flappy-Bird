@@ -96,7 +96,7 @@ class Pipe(pygame.sprite.Sprite):
 
 
 class Ball(pygame.sprite.Sprite):
-    def __init__(self, all_sprites, obstacles, width, height):
+    def __init__(self, all_sprites, obstacles, width, height, direction):
         super().__init__(all_sprites)
         self.height = height
         self.add(obstacles)
@@ -106,11 +106,10 @@ class Ball(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect()
         self.rect.x = width
+        self.rect.y = height // 2 - 30 if direction == 0 else random.randint(0, height - 60)
         self.vel_x = -5
-        self.vel_y = random.choice([-5, 5])
+        self.vel_y = 0 if direction == 0 else direction * 5
         self.mask = pygame.mask.from_surface(self.image)
-        if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
-            self.vel_y = -self.vel_y + random.uniform(-1, 1)
         self.passed = False
         self.angle = 0
         self.rotation_speed = 10
@@ -118,12 +117,13 @@ class Ball(pygame.sprite.Sprite):
     def update(self, *args):
         global cnt
         self.rect.x += self.vel_x
-        self.rect.y += self.vel_y
+        if self.vel_y != 0:
+            self.rect.y += self.vel_y
+            if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
+                self.vel_y *= -1
         self.angle = (self.angle + self.rotation_speed) % 360
         self.image = pygame.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
-        if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
-            self.vel_y *= -1
         if self.rect.x + self.image.get_width() < 0:
             self.kill()
         if self.rect.x + 50 == 0 and not self.passed:
@@ -357,6 +357,7 @@ def main():
     score_images = []
     for i in range(10):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
+
     while running:
         for event in pygame.event.get():
             if not (pause):
@@ -372,7 +373,10 @@ def main():
                             Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
                                  height, width)
                         else:
-                            Ball(all_sprites, obstacles, width, height)
+                            # Спавн трех мячей
+                            Ball(all_sprites, obstacles, width, height, 0)
+                            Ball(all_sprites, obstacles, width, height, 1)
+                            Ball(all_sprites, obstacles, width, height, -1)
                     else:
                         Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
                              height, width)
