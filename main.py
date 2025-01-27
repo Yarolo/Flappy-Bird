@@ -154,7 +154,6 @@ class Clouds(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(pygame.image.load(os.path.join("data", "sky.png")),
                                             (width, 20)).convert_alpha()
         self.rect = self.image.get_rect()
-
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = 0
@@ -209,6 +208,7 @@ class RollBackButton(pygame.sprite.Sprite):
             if self.rect.collidepoint(args[0].pos):
                 running = False
 
+
 class Background:
     def __init__(self, filename, screen_width, screen_height):
         pygame.init()
@@ -228,12 +228,31 @@ class Background:
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
 
+
 game_over_screen = False
 running = True
 cnt = Counter()
 
 
+def load_record():
+    try:
+        with open('record.txt', 'r') as f:
+            return int(f.read())
+    except:
+        return 0
+
+
+def save_record(record):
+    with open('record.txt', 'w') as f:
+        f.write(str(record))
+
+
 def game_over(screen, score):
+    record = load_record()
+    new_record = score > record
+    if new_record:
+        save_record(score)
+        record = score
     game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     clock = pygame.time.Clock()
@@ -292,6 +311,21 @@ def game_over(screen, score):
             clock.tick(20)
         else:
             clock.tick(5)
+    if new_record:
+        new_record_font = pygame.font.Font(None, 72)
+        new_record_text = new_record_font.render("НОВЫЙ РЕКОРД!", True, (255, 215, 0))
+        new_record_rect = new_record_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
+        record_font = pygame.font.Font(None, 48)
+        record_text = record_font.render(f"Рекорд: {record}", True, (255, 255, 255))
+        record_rect = record_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
+        for alpha in range(0, 256, 5):
+            s = pygame.Surface(screen.get_size())
+            s.set_alpha(alpha)
+            s.blit(new_record_text, new_record_rect)
+            s.blit(record_text, record_rect)
+            screen.blit(s, (0, 0))
+            pygame.display.flip()
+            pygame.time.delay(30)
 
 
 def main():
@@ -309,7 +343,6 @@ def main():
     screen = pygame.display.set_mode(size)
     br = Bird(100, 300, all_sprites, obstacles, borders)
     clock = pygame.time.Clock()
-
     Clouds(all_sprites, borders, width)
     Ground(all_sprites, borders, height, width)
     MYEVENTTYPE = pygame.USEREVENT + 1
@@ -344,25 +377,21 @@ def main():
                     else:
                         Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
                              height, width)
-                if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
-
+                if event.type == pygame.MOUSEBUTTONDOWN or (
+                        event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
                     br.click_event()
             else:
                 pygame.mouse.set_visible(True)
                 buttons.update(event)
                 buttons.draw(screen)
-
             if event.type == pygame.QUIT:
                 sys.exit()
-
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and not pause:
                 rb_btn = RollBackButton(buttons)
                 screen.blit(pause_screen, (0, 0))
                 pause = True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
                 pause = False
-
-
         if not (pause):
             screen.blit(background_image, (0, 0))
             all_sprites.update()
@@ -376,8 +405,6 @@ def main():
         pygame.display.flip()
         clock.tick(50)
     pygame.mouse.set_visible(True)
-
-
     if game_over_screen:
         game_over(screen, cnt.score)
     running = True
@@ -401,7 +428,6 @@ def start_screen():
     animation_timer = 0
     animation_speed = 10
     PlayButton(buttons)
-
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -413,24 +439,21 @@ def start_screen():
                 if rules_button_rect.collidepoint(event.pos):
                     background.show_rules = not background.show_rules
             buttons.update(event)
-        if not(running):
+        if not (running):
             running = True
             return
-
         background.draw(screen)
         buttons.draw(screen)
         screen.blit(bird_image, bird_rect)
         rules_button_text = background.font.render("Правила", True, (0, 0, 0))
         rules_button_rect = rules_button_text.get_rect(topleft=(10, 10))
         screen.blit(rules_button_text, rules_button_rect)
-
         if background.show_rules:
             y = rules_button_rect.bottom + 10
             for rule in background.rules:
                 text = background.font.render(rule, True, (0, 0, 0))
                 screen.blit(text, (10, y))
                 y += text.get_height() + 5
-
         animation_timer += 1
         if animation_timer >= animation_speed:
             animation_timer = 0
@@ -441,7 +464,6 @@ def start_screen():
             else:
                 bird_state = 'mid'
             bird_image = bird_images[bird_state]
-
         pygame.display.flip()
         clock.tick(60)
 
