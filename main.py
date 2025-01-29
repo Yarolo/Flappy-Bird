@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import sys
@@ -99,6 +100,7 @@ class Ball(pygame.sprite.Sprite):
     def __init__(self, all_sprites, obstacles, width, height):
         super().__init__(all_sprites)
         self.height = height
+        self.width = width
         self.add(obstacles)
         self.original_image = pygame.transform.scale(
             pygame.image.load(os.path.join('data', 'spiked_ball.png')), (60, 60)
@@ -106,24 +108,62 @@ class Ball(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect()
         self.rect.x = width
-        self.vel_x = -5
-        self.vel_y = random.choice([-5, 5])
+        self.vel_x = -7
+        self.vel_y = random.choice([-3, -2, -1, 1, 2, 3])
         self.mask = pygame.mask.from_surface(self.image)
-        if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
-            self.vel_y = -self.vel_y + random.uniform(-1, 1)
         self.passed = False
         self.angle = 0
         self.rotation_speed = 10
+        self.movement_type = random.choice([
+            "bounce", "straight", "sinusoidal", "spiral", "zigzag", "chaotic", "static"
+        ])
+        self.level = random.choice(["top", "middle", "bottom"])
+        self.amplitude = random.randint(50, 100)
+        self.frequency = random.uniform(0.01, 0.03)
+        self.time = 0
+        self.spiral_angle = 1
+        self.chaotic_counter = 0
+        self.zigzag_direction = 1
+        if self.level == "top":
+            self.rect.y = random.randint(50, height // 3)
+        elif self.level == "middle":
+            self.rect.y = random.randint(height // 3, 2 * height // 3)
+        elif self.level == "bottom":
+            self.rect.y = random.randint(2 * height // 3, height - 50)
 
     def update(self, *args):
         global cnt
         self.rect.x += self.vel_x
-        self.rect.y += self.vel_y
+        if self.movement_type == "bounce":
+            self.rect.y += self.vel_y
+            if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
+                self.vel_y *= -1
+        elif self.movement_type == "straight":
+            pass
+        elif self.movement_type == "sinusoidal":
+            self.time += 1
+            self.rect.y = self.rect.y + self.amplitude * math.sin(self.frequency * self.time)
+        elif self.movement_type == "spiral":
+            self.spiral_angle += 0.1
+            self.rect.y = self.rect.y + 2 * math.sin(self.spiral_angle)
+            self.rect.x += 2 * math.cos(self.spiral_angle)
+        elif self.movement_type == "zigzag":
+            self.rect.y += self.vel_y * self.zigzag_direction
+            if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
+                self.zigzag_direction *= -1
+        elif self.movement_type == "chaotic":
+            self.chaotic_counter += 1
+            if self.chaotic_counter % 10 == 0:
+                self.vel_y = random.choice([-3, -2, -1, 1, 2, 3])
+            self.rect.y += self.vel_y
+            if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
+                self.vel_y *= -1
+        elif self.movement_type == "static":
+            self.rect.x -= 2
+            self.rect.y = self.rect.y
         self.angle = (self.angle + self.rotation_speed) % 360
         self.image = pygame.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
-        if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
-            self.vel_y *= -1
         if self.rect.x + self.image.get_width() < 0:
             self.kill()
         if self.rect.x + 50 == 0 and not self.passed:
@@ -227,6 +267,30 @@ class Background:
 
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
+
+
+class Button(pygame.sprite.Sprite):
+    def __init__(self, text, pos, group):
+        super().__init__(group)
+        self.image = pygame.Surface((200, 50))
+        self.image.fill((255, 255, 255))
+        self.rect = self.image.get_rect(topleft=pos)
+        self.text = text
+        self.pressed = False
+        self.font = pygame.font.Font(None, 36)
+        self.text_surface = self.font.render(self.text, True, (0, 0, 0))
+        self.text_rect = self.text_surface.get_rect(center=self.rect.center)
+
+    def update(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.pressed = True
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.pressed = False
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+        screen.blit(self.text_surface, self.text_rect)
 
 
 game_over_screen = False
@@ -366,16 +430,16 @@ def main():
                     time += 1
                     if time % 10 == 0 and eazy > 100:
                         eazy -= 40
-                    if time // 20 >= 1:
-                        is_pipe = random.choice((False, True))
-                        if is_pipe:
-                            Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
-                                 height, width)
-                        else:
-                            Ball(all_sprites, obstacles, width, height)
-                    else:
-                        Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
-                             height, width)
+
+                    # Спавн труб (по одной)
+                    Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
+                         height, width)
+
+                    # Спавн пил (от 1 до 3 за раз)
+                    num_balls = random.randint(1, 3)  # От 1 до 3 пил за раз
+                    for _ in range(num_balls):
+                        Ball(all_sprites, obstacles, width, height)
+
                 if event.type == pygame.MOUSEBUTTONDOWN or (
                         event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
                     br.click_event()
@@ -407,6 +471,7 @@ def main():
     pygame.mouse.set_visible(True)
     if game_over_screen:
         game_over(screen, cnt.score)
+
     running = True
     game_over_screen = False
 
@@ -427,7 +492,7 @@ def start_screen():
     bird_rect = bird_image.get_rect(center=(100, 300))
     animation_timer = 0
     animation_speed = 10
-    PlayButton(buttons)
+    playbutton = PlayButton(buttons)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -438,6 +503,8 @@ def start_screen():
                     topleft=(10, 10))
                 if rules_button_rect.collidepoint(event.pos):
                     background.show_rules = not background.show_rules
+            elif event.type == pygame.MOUSEBUTTONUP and playbutton.clicked and playbutton.rect.collidepoint(event.pos):
+                choose_game_mode()
             buttons.update(event)
         if not (running):
             running = True
@@ -468,7 +535,73 @@ def start_screen():
         clock.tick(60)
 
 
+def choose_game_mode():
+    background = Background("background-day.png", 800, 600)
+    screen = background.screen
+    clock = pygame.time.Clock()
+    buttons = pygame.sprite.Group()
+    infinite_button = Button("Бесконечный режим", (100, 200), buttons)
+    levels_button = Button("Уровни", (100, 300), buttons)
+    rb_btn = RollBackButton(buttons)
+    levels_button_clicked = False
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            buttons.update(event)
+            if event.type == pygame.MOUSEBUTTONDOWN and rb_btn.rect.collidepoint(event.pos):
+                rb_btn.image = rb_btn.clicked
+            elif event.type == pygame.MOUSEBUTTONDOWN and infinite_button.pressed and infinite_button.rect.collidepoint(
+                    event.pos):
+                main()
+            elif event.type == pygame.MOUSEBUTTONUP and rb_btn.rect.collidepoint(event.pos):
+                return
+            elif event.type == pygame.MOUSEBUTTONDOWN and levels_button.rect.collidepoint(event.pos):
+                levels_button_clicked = True
+
+        background.draw(screen)
+        buttons.draw(screen)
+        screen.blit(rb_btn.image, rb_btn.rect)
+        pygame.display.flip()
+        clock.tick(60)
+        if levels_button_clicked:
+            choose_level()
+            levels_button_clicked = False
+
+
+def choose_level():
+    background = Background("background-day.png", 800, 600)
+    screen = background.screen
+    clock = pygame.time.Clock()
+    buttons = pygame.sprite.Group()
+    easy_button = Button("Легкий", (100, 200), buttons)
+    medium_button = Button("Средний", (100, 300), buttons)
+    hard_button = Button("Сложный", (100, 400), buttons)
+    rb_btn = RollBackButton(buttons)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            buttons.update(event)
+            if event.type == pygame.MOUSEBUTTONDOWN and rb_btn.rect.collidepoint(event.pos):
+                rb_btn.image = rb_btn.clicked
+            elif event.type == pygame.MOUSEBUTTONUP and rb_btn.rect.collidepoint(event.pos):
+                return
+        background.draw(screen)
+        buttons.draw(screen)
+        screen.blit(rb_btn.image, rb_btn.rect)
+        pygame.display.flip()
+        clock.tick(60)
+        if easy_button.pressed:
+            pass
+        elif medium_button.pressed:
+            pass
+        elif hard_button.pressed:
+            pass
+
+
 if __name__ == '__main__':
     while True:
         start_screen()
-        main()
