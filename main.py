@@ -430,16 +430,16 @@ def main():
                     time += 1
                     if time % 10 == 0 and eazy > 100:
                         eazy -= 40
-
-                    # Спавн труб (по одной)
-                    Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
-                         height, width)
-
-                    # Спавн пил (от 1 до 3 за раз)
-                    num_balls = random.randint(1, 3)  # От 1 до 3 пил за раз
-                    for _ in range(num_balls):
-                        Ball(all_sprites, obstacles, width, height)
-
+                    if time // 20 >= 1:
+                        is_pipe = random.choice((False, True))
+                        if is_pipe:
+                            Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
+                                 height, width)
+                        else:
+                            Ball(all_sprites, obstacles, width, height)
+                    else:
+                        Pipe(random.choice(range(eazy // 2, size[1] - eazy // 2 + 1)), eazy, all_sprites, obstacles,
+                             height, width)
                 if event.type == pygame.MOUSEBUTTONDOWN or (
                         event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
                     br.click_event()
@@ -471,7 +471,6 @@ def main():
     pygame.mouse.set_visible(True)
     if game_over_screen:
         game_over(screen, cnt.score)
-
     running = True
     game_over_screen = False
 
