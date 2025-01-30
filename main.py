@@ -177,7 +177,7 @@ class Ball(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
         self.passed = False
         self.angle = 0
-        self.rotation_speed = 10
+        self.rotation_speed = 11
         self.movement_type = random.choice([
             "bounce", "straight", "sinusoidal", "spiral", "zigzag", "chaotic", "static"
         ])
