@@ -30,6 +30,13 @@ class Bird(pygame.sprite.Sprite):
         self.gravity = 1.123
         self.state = 'mid'
         self.angle = 0
+        self.dead = False
+
+    def isdead(self):
+        if self.dead:
+            self.dead = False
+            return True
+        return False
 
     def update(self, *ev):
         global running
@@ -203,50 +210,33 @@ class Clouds(pygame.sprite.Sprite):
         return 20
 
 
-class PlayButton(pygame.sprite.Sprite):
-    def __init__(self, buttons):
+class Button(pygame.sprite.Sprite):
+    def __init__(self, unclick, click, size, pos, buttons):
         super().__init__(buttons)
-        self.unclicked = pygame.image.load(os.path.join('data', 'unclicked_play_button.png')).convert_alpha()
-        self.clicked = pygame.image.load(os.path.join('data', 'clicked_play_button.png')).convert_alpha()
-        self.unclicked = pygame.transform.scale(self.unclicked, (200, 100))
-        self.clicked = pygame.transform.scale(self.clicked, (200, 100))
-        self.image = self.unclicked
+        self.unclicked_im = pygame.image.load(os.path.join('data', unclick)).convert_alpha()
+        self.clicked_im = pygame.image.load(os.path.join('data', click)).convert_alpha()
+        self.unclicked_im = pygame.transform.scale(self.unclicked_im, (size[0], size[1]))
+        self.clicked_im = pygame.transform.scale(self.clicked_im, (size[0], size[1]))
+        self.image = self.unclicked_im
         self.rect = self.image.get_rect()
-        self.rect.x = 300
-        self.rect.y = 350
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.clicked = False
+
+    def isclicked(self):
+        if self.clicked:
+            self.clicked = False
+            return True
+        return False
 
     def update(self, *args, **kwargs):
-        global running
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
                 self.rect.collidepoint(args[0].pos):
-            self.image = self.clicked
+            self.image = self.clicked_im
         if args and args[0].type == pygame.MOUSEBUTTONUP:
-            self.image = self.unclicked
+            self.image = self.unclicked_im
             if self.rect.collidepoint(args[0].pos):
-                running = False
-
-
-class RollBackButton(pygame.sprite.Sprite):
-    def __init__(self, buttons):
-        super().__init__(buttons)
-        self.unclicked = pygame.image.load(os.path.join('data', 'unclicked_roll_back_button.png')).convert_alpha()
-        self.clicked = pygame.image.load(os.path.join('data', 'clicked_roll_back_button.png')).convert_alpha()
-        self.unclicked = pygame.transform.scale(self.unclicked, (80, 80))
-        self.clicked = pygame.transform.scale(self.clicked, (80, 80))
-        self.image = self.unclicked
-        self.rect = self.image.get_rect()
-        self.rect.x = 680
-        self.rect.y = 20
-
-    def update(self, *args, **kwargs):
-        global running
-        if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
-                self.rect.collidepoint(args[0].pos):
-            self.image = self.clicked
-        if args and args[0].type == pygame.MOUSEBUTTONUP:
-            self.image = self.unclicked
-            if self.rect.collidepoint(args[0].pos):
-                running = False
+                self.clicked = True
 
 
 class Background:
@@ -267,30 +257,6 @@ class Background:
 
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
-
-
-class Button(pygame.sprite.Sprite):
-    def __init__(self, text, pos, group):
-        super().__init__(group)
-        self.image = pygame.Surface((200, 50))
-        self.image.fill((255, 255, 255))
-        self.rect = self.image.get_rect(topleft=pos)
-        self.text = text
-        self.pressed = False
-        self.font = pygame.font.Font(None, 36)
-        self.text_surface = self.font.render(self.text, True, (0, 0, 0))
-        self.text_rect = self.text_surface.get_rect(center=self.rect.center)
-
-    def update(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(event.pos):
-                self.pressed = True
-        elif event.type == pygame.MOUSEBUTTONUP:
-            self.pressed = False
-
-    def draw(self, screen):
-        screen.blit(self.image, self.rect)
-        screen.blit(self.text_surface, self.text_rect)
 
 
 game_over_screen = False
@@ -402,7 +368,7 @@ def main():
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
     buttons = pygame.sprite.Group()
-    rb_btn = RollBackButton(buttons)
+    rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
     size = width, height = 800, 600
     screen = pygame.display.set_mode(size)
     br = Bird(100, 300, all_sprites, obstacles, borders)
@@ -447,10 +413,13 @@ def main():
                 pygame.mouse.set_visible(True)
                 buttons.update(event)
                 buttons.draw(screen)
+            if rb_btn.isclicked():
+                return
             if event.type == pygame.QUIT:
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and not pause:
-                rb_btn = RollBackButton(buttons)
+                rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80),
+                                (680, 20), buttons)
                 screen.blit(pause_screen, (0, 0))
                 pause = True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
@@ -476,7 +445,6 @@ def main():
 
 
 def start_screen():
-    global running
     background = Background("background-day.png", 800, 600)
     screen = background.screen
     clock = pygame.time.Clock()
@@ -491,23 +459,20 @@ def start_screen():
     bird_rect = bird_image.get_rect(center=(100, 300))
     animation_timer = 0
     animation_speed = 10
-    playbutton = PlayButton(buttons)
+    playbutton = Button('unclicked_play_button.png', 'clicked_play_button.png', (200, 100), (300, 350), buttons)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            buttons.update(event)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 rules_button_rect = background.font.render("Правила", True, (0, 0, 0)).get_rect(
                     topleft=(10, 10))
                 if rules_button_rect.collidepoint(event.pos):
                     background.show_rules = not background.show_rules
-            elif event.type == pygame.MOUSEBUTTONUP and playbutton.clicked and playbutton.rect.collidepoint(event.pos):
+            elif playbutton.isclicked():
                 choose_game_mode()
-            buttons.update(event)
-        if not (running):
-            running = True
-            return
         background.draw(screen)
         buttons.draw(screen)
         screen.blit(bird_image, bird_rect)
@@ -539,9 +504,12 @@ def choose_game_mode():
     screen = background.screen
     clock = pygame.time.Clock()
     buttons = pygame.sprite.Group()
-    infinite_button = Button("Бесконечный режим", (100, 200), buttons)
-    levels_button = Button("Уровни", (100, 300), buttons)
-    rb_btn = RollBackButton(buttons)
+    infinite_button = Button("unclicked_endless_mode_button.png", "clicked_endless_mode_button.png", \
+                             (150, 80), (100, 210), buttons)
+    levels_button = Button("unclicked_levels_button.png", "clicked_levels_button.png", \
+                           (150, 80), (100, 310), buttons)
+    rb_btn = rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', \
+                             (80, 80), (680, 20), buttons)
     levels_button_clicked = False
     while True:
         for event in pygame.event.get():
@@ -549,14 +517,12 @@ def choose_game_mode():
                 pygame.quit()
                 sys.exit()
             buttons.update(event)
-            if event.type == pygame.MOUSEBUTTONDOWN and rb_btn.rect.collidepoint(event.pos):
-                rb_btn.image = rb_btn.clicked
-            elif event.type == pygame.MOUSEBUTTONDOWN and infinite_button.pressed and infinite_button.rect.collidepoint(
-                    event.pos):
+            if infinite_button.isclicked():
                 main()
-            elif event.type == pygame.MOUSEBUTTONUP and rb_btn.rect.collidepoint(event.pos):
                 return
-            elif event.type == pygame.MOUSEBUTTONDOWN and levels_button.rect.collidepoint(event.pos):
+            elif rb_btn.isclicked():
+                return
+            elif levels_button.isclicked():
                 levels_button_clicked = True
 
         background.draw(screen)
@@ -574,30 +540,29 @@ def choose_level():
     screen = background.screen
     clock = pygame.time.Clock()
     buttons = pygame.sprite.Group()
-    easy_button = Button("Легкий", (100, 200), buttons)
-    medium_button = Button("Средний", (100, 300), buttons)
-    hard_button = Button("Сложный", (100, 400), buttons)
-    rb_btn = RollBackButton(buttons)
+    easy_button = Button("unclicked_level_button_1.png", 'clicked_level_button_1.png', (80, 80), (100, 200), buttons)
+    medium_button = Button("unclicked_level_button_2.png", 'clicked_level_button_2.png', (80, 80), (100, 300), buttons)
+    hard_button = Button("unclicked_level_button_3.png", 'clicked_level_button_3.png', (80, 80), (100, 400), buttons)
+    rb_btn = rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20),
+                             buttons)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             buttons.update(event)
-            if event.type == pygame.MOUSEBUTTONDOWN and rb_btn.rect.collidepoint(event.pos):
-                rb_btn.image = rb_btn.clicked
-            elif event.type == pygame.MOUSEBUTTONUP and rb_btn.rect.collidepoint(event.pos):
+            if rb_btn.clicked:
                 return
         background.draw(screen)
         buttons.draw(screen)
         screen.blit(rb_btn.image, rb_btn.rect)
         pygame.display.flip()
         clock.tick(60)
-        if easy_button.pressed:
+        if easy_button.isclicked():
             pass
-        elif medium_button.pressed:
+        elif medium_button.isclicked():
             pass
-        elif hard_button.pressed:
+        elif hard_button.isclicked():
             pass
 
 
