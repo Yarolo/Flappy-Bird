@@ -31,36 +31,93 @@ class Bird(pygame.sprite.Sprite):
         self.state = 'mid'
         self.angle = 0
         self.dead = False
-
-    def isdead(self):
-        if self.dead:
-            self.dead = False
-            return True
-        return False
+        self.death_type = None
+        self.rotation_angle = 0
+        self.pipe_suck_speed = [0, 0]
+        self.bounce_count = 0
+        self.max_bounces = 3
 
     def update(self, *ev):
         global running
         global game_over_screen
-        for i in self.obstacles.sprites():
-            if pygame.sprite.collide_mask(self, i):
-                running = False
-                game_over_screen = True
-        if pygame.sprite.spritecollideany(self, self.borders):
-            running = False
-            game_over_screen = True
-        self.rect.y += self.vel
-        self.vel += self.gravity
-        if self.vel < 0:
-            self.state = 'up'
-        elif self.vel > 0:
-            self.state = 'down'
+        if not self.dead:
+            for i in self.obstacles.sprites():
+                if pygame.sprite.collide_mask(self, i):
+                    if isinstance(i, Pipe):
+                        self.die(death_type="pipe", obstacle=i)
+                    elif isinstance(i, Ball):
+                        self.die(death_type="ball")
+            if pygame.sprite.spritecollideany(self, self.borders):
+                border = pygame.sprite.spritecollideany(self, self.borders)
+                if border.rect.y == 0:
+                    self.die(death_type="top")
+                else:
+                    self.die(death_type="bottom")
+            self.rect.y += self.vel
+            self.vel += self.gravity
+            if self.vel < 0:
+                self.state = 'up'
+            elif self.vel > 0:
+                self.state = 'down'
+            else:
+                self.state = 'mid'
+            self.image = self.images[self.state]
+            self.angle = -self.vel * 1.5
+            self.angle = max(-60, min(60, self.angle))
+            self.image = pygame.transform.rotate(self.images[self.state], self.angle)
+            self.rect = self.image.get_rect(center=self.rect.center)
         else:
-            self.state = 'mid'
-        self.image = self.images[self.state]
-        self.angle = -self.vel * 1.5
-        self.angle = max(-60, min(60, self.angle))
-        self.image = pygame.transform.rotate(self.images[self.state], self.angle)
-        self.rect = self.image.get_rect(center=self.rect.center)
+            if self.death_type == "top":
+                self.angle = min(self.angle + 5, 90)
+                self.image = pygame.transform.rotate(self.images['mid'], self.angle)
+                self.vel += self.gravity
+                self.rect.y += self.vel
+                if self.rect.y >= 600:
+                    self.image = pygame.transform.rotate(self.images['mid'], 180)
+                    running = False
+                    game_over_screen = True
+            elif self.death_type == "bottom":
+                self.vel += self.gravity
+                self.rect.y += self.vel
+                if self.rect.y >= 600:
+                    self.bounce_count += 1
+                    self.vel *= -0.7
+                    if self.bounce_count >= self.max_bounces:
+                        self.image = pygame.transform.rotate(self.images['mid'], 180)
+                        running = False
+                        game_over_screen = True
+            elif self.death_type == "pipe":
+                self.rect.x += self.pipe_suck_speed[0]
+                self.rect.y += self.pipe_suck_speed[1]
+                if self.rect.y < 0 or self.rect.y > 600:
+                    running = False
+                    game_over_screen = True
+            elif self.death_type == "ball":
+                self.rotation_angle += 10
+                self.image = pygame.transform.rotate(self.images['mid'], self.rotation_angle)
+                self.vel += self.gravity
+                self.rect.y += self.vel
+                if self.rect.y >= 600:
+                    running = False
+                    game_over_screen = True
+
+    def die(self, death_type, obstacle=None):
+        self.dead = True
+        self.death_type = death_type
+        if death_type == "top":
+            self.vel = 0
+        elif death_type == "bottom":
+            self.vel = -20
+        elif death_type == "pipe":
+            self.pipe_suck_speed = [0, 0]
+            if obstacle.rect.x > self.rect.x:
+                self.pipe_suck_speed[0] = -5
+            else:
+                self.pipe_suck_speed[0] = 5
+            self.pipe_suck_speed[1] = -5
+        elif death_type == "ball":
+            self.vel = 0
+            self.rotation_angle = 0
 
     def click_event(self):
         self.vel = -10
@@ -449,6 +506,7 @@ def start_screen():
     screen = background.screen
     clock = pygame.time.Clock()
     buttons = pygame.sprite.Group()
+    playbutton = Button('unclicked_play_button.png', 'clicked_play_button.png', (200, 100), (300, 350), buttons)
     bird_images = {
         'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
         'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
@@ -458,20 +516,14 @@ def start_screen():
     bird_image = bird_images[bird_state]
     bird_rect = bird_image.get_rect(center=(100, 300))
     animation_timer = 0
-    animation_speed = 10
-    playbutton = Button('unclicked_play_button.png', 'clicked_play_button.png', (200, 100), (300, 350), buttons)
+    animation_speed = 30
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             buttons.update(event)
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                rules_button_rect = background.font.render("Правила", True, (0, 0, 0)).get_rect(
-                    topleft=(10, 10))
-                if rules_button_rect.collidepoint(event.pos):
-                    background.show_rules = not background.show_rules
-            elif playbutton.isclicked():
+            if playbutton.isclicked():
                 choose_game_mode()
         background.draw(screen)
         buttons.draw(screen)
@@ -495,6 +547,7 @@ def start_screen():
             else:
                 bird_state = 'mid'
             bird_image = bird_images[bird_state]
+
         pygame.display.flip()
         clock.tick(60)
 
@@ -508,9 +561,18 @@ def choose_game_mode():
                              (150, 80), (100, 210), buttons)
     levels_button = Button("unclicked_levels_button.png", "clicked_levels_button.png", \
                            (150, 80), (100, 310), buttons)
-    rb_btn = rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', \
-                             (80, 80), (680, 20), buttons)
-    levels_button_clicked = False
+    rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', \
+                    (80, 80), (680, 20), buttons)
+    bird_images = {
+        'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
+        'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
+        'down': pygame.image.load(os.path.join('data', 'bluebird-downflap.png')).convert_alpha()
+    }
+    bird_state = 'mid'
+    bird_image = bird_images[bird_state]
+    bird_rect = bird_image.get_rect(center=(infinite_button.rect.left - 50, infinite_button.rect.centery))
+    animation_timer = 0
+    animation_speed = 30
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -523,16 +585,39 @@ def choose_game_mode():
             elif rb_btn.isclicked():
                 return
             elif levels_button.isclicked():
-                levels_button_clicked = True
-
+                choose_level()
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        infinite_button_rect = infinite_button.rect
+        levels_button_rect = levels_button.rect
+        area_padding = 50
+        restricted_area_infinite = infinite_button_rect.inflate(area_padding * 2, area_padding * 2)
+        restricted_area_levels = levels_button_rect.inflate(area_padding * 2, area_padding * 2)
+        if restricted_area_infinite.collidepoint(mouse_x, mouse_y):
+            target_x = infinite_button_rect.left - 50
+            target_y = infinite_button_rect.centery
+            bird_rect.centerx += (target_x - bird_rect.centerx) * 0.1
+            bird_rect.centery += (target_y - bird_rect.centery) * 0.1
+        elif restricted_area_levels.collidepoint(mouse_x, mouse_y):
+            target_x = levels_button_rect.left - 50
+            target_y = levels_button_rect.centery
+            bird_rect.centerx += (target_x - bird_rect.centerx) * 0.1
+            bird_rect.centery += (target_y - bird_rect.centery) * 0.1
         background.draw(screen)
         buttons.draw(screen)
-        screen.blit(rb_btn.image, rb_btn.rect)
+        screen.blit(bird_image, bird_rect)
+        animation_timer += 1
+        if animation_timer >= animation_speed:
+            animation_timer = 0
+            if bird_state == 'mid':
+                bird_state = 'up'
+            elif bird_state == 'up':
+                bird_state = 'down'
+            else:
+                bird_state = 'mid'
+            bird_image = bird_images[bird_state]
+
         pygame.display.flip()
         clock.tick(60)
-        if levels_button_clicked:
-            choose_level()
-            levels_button_clicked = False
 
 
 def choose_level():
@@ -543,27 +628,69 @@ def choose_level():
     easy_button = Button("unclicked_level_button_1.png", 'clicked_level_button_1.png', (80, 80), (100, 200), buttons)
     medium_button = Button("unclicked_level_button_2.png", 'clicked_level_button_2.png', (80, 80), (100, 300), buttons)
     hard_button = Button("unclicked_level_button_3.png", 'clicked_level_button_3.png', (80, 80), (100, 400), buttons)
-    rb_btn = rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20),
-                             buttons)
+    rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
+    bird_images = {
+        'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
+        'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
+        'down': pygame.image.load(os.path.join('data', 'bluebird-downflap.png')).convert_alpha()
+    }
+    bird_state = 'mid'
+    bird_image = bird_images[bird_state]
+    bird_rect = bird_image.get_rect(center=(easy_button.rect.left - 50, easy_button.rect.centery))
+    animation_timer = 0
+    animation_speed = 10
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             buttons.update(event)
-            if rb_btn.clicked:
+            if rb_btn.isclicked():
                 return
+            elif easy_button.isclicked():
+                pass
+            elif medium_button.isclicked():
+                pass
+            elif hard_button.isclicked():
+                pass
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        easy_button_rect = easy_button.rect
+        medium_button_rect = medium_button.rect
+        hard_button_rect = hard_button.rect
+        area_padding = 50
+        restricted_area_easy = easy_button_rect.inflate(area_padding * 2, area_padding * 2)
+        restricted_area_medium = medium_button_rect.inflate(area_padding * 2, area_padding * 2)
+        restricted_area_hard = hard_button_rect.inflate(area_padding * 2, area_padding * 2)
+        if restricted_area_easy.collidepoint(mouse_x, mouse_y):
+            target_x = easy_button_rect.left - 50
+            target_y = easy_button_rect.centery
+            bird_rect.centerx += (target_x - bird_rect.centerx) * 0.1
+            bird_rect.centery += (target_y - bird_rect.centery) * 0.1
+        elif restricted_area_medium.collidepoint(mouse_x, mouse_y):
+            target_x = medium_button_rect.left - 50
+            target_y = medium_button_rect.centery
+            bird_rect.centerx += (target_x - bird_rect.centerx) * 0.1
+            bird_rect.centery += (target_y - bird_rect.centery) * 0.1
+        elif restricted_area_hard.collidepoint(mouse_x, mouse_y):
+            target_x = hard_button_rect.left - 50
+            target_y = hard_button_rect.centery
+            bird_rect.centerx += (target_x - bird_rect.centerx) * 0.1
+            bird_rect.centery += (target_y - bird_rect.centery) * 0.1
         background.draw(screen)
         buttons.draw(screen)
-        screen.blit(rb_btn.image, rb_btn.rect)
+        screen.blit(bird_image, bird_rect)
+        animation_timer += 1
+        if animation_timer >= animation_speed:
+            animation_timer = 0
+            if bird_state == 'mid':
+                bird_state = 'up'
+            elif bird_state == 'up':
+                bird_state = 'down'
+            else:
+                bird_state = 'mid'
+            bird_image = bird_images[bird_state]
         pygame.display.flip()
         clock.tick(60)
-        if easy_button.isclicked():
-            pass
-        elif medium_button.isclicked():
-            pass
-        elif hard_button.isclicked():
-            pass
 
 
 if __name__ == '__main__':
