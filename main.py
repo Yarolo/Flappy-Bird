@@ -348,23 +348,51 @@ def save_record(record):
         f.write(str(record))
 
 
+def draw_confetti(screen):
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 165, 0)]  # Разные цвета
+    confetti_particles = []
+    for _ in range(50):
+        x = random.randint(0, screen.get_width())
+        y = random.randint(-100, -50)
+        size = random.randint(5, 15)
+        velocity = [random.uniform(-2, 2), random.uniform(2, 5)]
+        color = random.choice(colors)
+        confetti_particles.append([x, y, size, velocity, color])
+    return confetti_particles
+
+
 def game_over(screen, score):
     record = load_record()
     new_record = score > record
     if new_record:
         save_record(score)
         record = score
+    new_record_images = []
+    for i in range(1, 8):
+        image = pygame.image.load(os.path.join("data", f"record{i}.png")).convert_alpha()
+        new_record_images.append(image)
+    new_record_index = 0
+    new_record_timer = 0
+    new_record_y = -100  # Начальная позиция выше экрана
+    velocity = 0  # Начальная скорость падения
+    gravity = 0.5  # Ускорение свободного падения
+    angle = 0  # Угол поворота
+    angular_velocity = 5  # Скорость вращения
+    scale = 0.5  # Начальный масштаб (эффект "падения от лица пользователя")
+    scale_speed = 0.02  # Скорость увеличения масштаба
+    max_scale = 1.5  # Максимальный масштаб
+    bouncing = True
+    final_animation = False
+    confetti_active = False
+    confetti_particles = draw_confetti(screen)
     game_over_image = pygame.transform.scale(pygame.image.load(os.path.join('data', 'game_over.png')),
                                              (400, 160))
-
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     game_over_scr = screen.copy()
     clock = pygame.time.Clock()
     score_images = []
     for i in range(10):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
-    x = screen.get_width() // 2 - len(str(score)) * 20 // 2
-    y = game_over_rect.bottom + 20
     for i in range(0, 256, 5):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -377,6 +405,8 @@ def game_over(screen, score):
         screen.blit(s, (0, 0))
         pygame.display.flip()
         clock.tick(24)
+    x = screen.get_width() // 2 - len(str(score)) * 20 // 2
+    y = game_over_rect.bottom + 20
     for i in range(score + 1):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -410,21 +440,58 @@ def game_over(screen, score):
         else:
             clock.tick(5)
     if new_record:
-        new_record_font = pygame.font.Font(None, 72)
-        new_record_text = new_record_font.render("НОВЫЙ РЕКОРД!", True, (255, 215, 0))
-        new_record_rect = new_record_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
-        record_font = pygame.font.Font(None, 48)
-        record_text = record_font.render(f"Рекорд: {record}", True, (255, 255, 255))
-        record_rect = record_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
-        for alpha in range(0, 256, 5):
-            s = pygame.Surface(screen.get_size())
-            s.set_alpha(alpha)
-            s.blit(new_record_text, new_record_rect)
-            s.blit(record_text, record_rect)
+        while bouncing or final_animation:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+            if bouncing:
+                velocity += gravity
+                new_record_y += velocity
+                angle += angular_velocity
+                scale += scale_speed
+                if new_record_y >= 400:
+                    new_record_y = 400
+                    velocity = -velocity * 0.7
+                    angular_velocity = -angular_velocity * 0.7
+                    if abs(velocity) < 2:
+                        bouncing = False
+                        final_animation = True
+                        confetti_active = True
+            if final_animation:
+                if scale < max_scale:  # Увеличиваем до максимального размера
+                    scale += 0.01
+                angle = max(-20, angle - 1)  # Поворачиваем к горизонту (угол 20 градусов)
+                if scale >= max_scale and angle <= -20:  # Фиксируем надпись
+                    final_animation = False
+            s = pygame.Surface((screen.get_width(), screen.get_height()))
+            s.blit(game_over_image, game_over_rect)
+            score_str = str(score)
+            x = screen.get_width() // 2 - len(str(score)) * 20 // 2
+            for digit in score_str:
+                s.blit(score_images[int(digit)], (x, y))
+                x += 20
+            current_image = new_record_images[new_record_index]
+            scaled_image = pygame.transform.scale(current_image, (int(current_image.get_width() * scale),
+                                                                   int(current_image.get_height() * scale)))
+            rotated_image = pygame.transform.rotate(scaled_image, angle)
+            rotated_rect = rotated_image.get_rect(center=(screen.get_width() // 2, new_record_y))
+            s.blit(rotated_image, rotated_rect.topleft)
             screen.blit(s, (0, 0))
+            if confetti_active:
+                for particle in confetti_particles:
+                    particle[0] += particle[3][0]
+                    particle[1] += particle[3][1]
+                    particle[3][1] += 0.1
+                confetti_particles[:] = [p for p in confetti_particles if p[1] < screen.get_height()]
+                for particle in confetti_particles:
+                    pygame.draw.circle(screen, particle[4], (int(particle[0]), int(particle[1])), particle[2])
             pygame.display.flip()
-            pygame.time.delay(30)
-
+            new_record_timer += 1
+            if new_record_timer >= 7:
+                new_record_timer = 0
+                new_record_index = (new_record_index + 1) % len(new_record_images)
+            clock.tick(60)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
