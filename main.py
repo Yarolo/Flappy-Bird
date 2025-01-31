@@ -350,7 +350,9 @@ def game_over(screen, score):
     if new_record:
         save_record(score)
         record = score
-    game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
+    game_over_image = pygame.transform.scale(pygame.image.load(os.path.join('data', 'game_over.png')),
+                                             (400, 160))
+
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     game_over_scr = screen.copy()
     clock = pygame.time.Clock()
@@ -421,7 +423,10 @@ def game_over(screen, score):
 
     while True:
         for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
                 return
 
 
