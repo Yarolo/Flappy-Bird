@@ -17,8 +17,8 @@ class Counter:
 class Particle(pygame.sprite.Sprite):
     def __init__(self, x, y, size, color, velocity, all_sprites=None):
         super().__init__()
-        self.image = pygame.Surface((size, size))
-        self.image.fill(color)
+        self.image = pygame.transform.scale(
+            pygame.image.load(os.path.join('data', 'stylus.png')).convert_alpha(), (size * 2, size * 2))
         self.rect = self.image.get_rect(center=(x, y))
         self.velocity = velocity
         self.lifetime = random.randint(30, 60)
@@ -58,6 +58,13 @@ class Bird(pygame.sprite.Sprite):
         self.skidding = False
         self.skid_timer = 0
         self.all_sprites = all_sprites
+        self.lose = False
+
+    def islose(self):
+        if self.lose:
+            self.lose = False
+            return True
+        return False
 
     def die(self, death_type, obstacle=None):
         self.dead = True
@@ -67,6 +74,7 @@ class Bird(pygame.sprite.Sprite):
         elif death_type == "pipe" or death_type == "ball":
             self.create_blood_particles()
             self.kill()
+            self.lose = True
         elif death_type == "top":
             self.vel = 0
         elif death_type == "bottom":
@@ -74,14 +82,12 @@ class Bird(pygame.sprite.Sprite):
 
     def create_blood_particles(self):
         if hasattr(self, 'all_sprites') and self.all_sprites:
-            for _ in range(50):
+            for _ in range(25):
                 velocity = [random.uniform(-5, 5), random.uniform(-5, 5)]
                 Particle(self.rect.centerx, self.rect.centery, random.randint(5, 10),
                          (255, 0, 0), velocity, self.all_sprites)
 
     def update(self, *ev):
-        global running
-        global game_over_screen
         if not self.dead:
             for i in self.obstacles.sprites():
                 if pygame.sprite.collide_mask(self, i):
@@ -116,21 +122,21 @@ class Bird(pygame.sprite.Sprite):
                 self.rect.y += self.vel
                 if self.rect.y >= 600:
                     self.image = pygame.transform.rotate(self.images['mid'], 180)
-                    running = False
-                    game_over_screen = True
+                    self.lose = True
             elif self.death_type == "bottom":
                 self.vel += self.gravity
                 self.rect.y += self.vel
-                if self.rect.y >= 600:
+                if self.rect.y >= 560:
+                    self.rect.y = 560
                     self.bounce_count += 1
                     self.vel *= -0.7
                     if self.bounce_count >= self.max_bounces:
                         self.image = pygame.transform.rotate(self.images['mid'], 180)
-                        running = False
-                        game_over_screen = True
+                        self.lose = True
 
     def click_event(self):
-        self.vel = -10
+        if not self.dead:
+            self.vel = -10
 
 
 class Pipe(pygame.sprite.Sprite):
@@ -326,8 +332,6 @@ class Background:
         screen.blit(self.image, (0, 0))
 
 
-game_over_screen = False
-running = True
 cnt = Counter()
 
 
@@ -431,9 +435,7 @@ def game_over(screen, score):
 
 
 def main():
-    global running
     global cnt
-    global game_over_screen
     cnt.score = 0
     pygame.display.set_caption('Flappy Bird')
     all_sprites = pygame.sprite.Group()
@@ -459,7 +461,7 @@ def main():
     score_images = []
     for i in range(10):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
-    while running:
+    while True:
         for event in pygame.event.get():
             if not (pause):
                 rb_btn.kill()
@@ -485,6 +487,10 @@ def main():
                 pygame.mouse.set_visible(True)
                 buttons.update(event)
                 buttons.draw(screen)
+            if br.islose():
+                pygame.mouse.set_visible(True)
+                game_over(screen, cnt.score)
+                return
             if rb_btn.isclicked():
                 return
             if event.type == pygame.QUIT:
@@ -509,11 +515,6 @@ def main():
                 x += 20
         pygame.display.flip()
         clock.tick(50)
-    pygame.mouse.set_visible(True)
-    if game_over_screen:
-        game_over(screen, cnt.score)
-    running = True
-    game_over_screen = False
 
 
 def start_screen():
