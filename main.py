@@ -70,7 +70,7 @@ class Pipe(pygame.sprite.Sprite):
     def __init__(self, y, ez, all_sprites, obstacles, height, width):
         super().__init__(all_sprites)
         self.add(obstacles)
-        self.y = random.randint(50, height - 200)
+        self.y = y
         self.ez = ez
         self.pipe_image_mid = pygame.image.load(os.path.join('data', 'pipe_mid.png')).convert_alpha()
         self.pipe_image_up = pygame.image.load(os.path.join('data', 'pipe_up.png'))
@@ -277,21 +277,17 @@ def save_record(record):
         f.write(str(record))
 
 
-def game_over(screen, score):
+def game_over(screen, score=None):
     record = load_record()
-    new_record = score > record
-    if new_record:
+    if score and score > record:
         save_record(score)
         record = score
+
     game_over_image = pygame.image.load(os.path.join('data', 'game_over.png'))
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     game_over_scr = screen.copy()
     clock = pygame.time.Clock()
-    score_images = []
-    for i in range(10):
-        score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
-    x = screen.get_width() // 2 - len(str(score)) * 20 // 2
-    y = game_over_rect.bottom + 20
+
     for i in range(0, 256, 5):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -304,39 +300,47 @@ def game_over(screen, score):
         screen.blit(s, (0, 0))
         pygame.display.flip()
         clock.tick(24)
-    for i in range(score + 1):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-        s = pygame.Surface((screen.get_width(), screen.get_height()))
-        s.blit(game_over_image, game_over_rect)
-        score_str = str(i)
+
+    if score:
+        score_images = []
+        for i in range(10):
+            score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
         x = screen.get_width() // 2 - len(str(score)) * 20 // 2
-        for digit in score_str:
-            s.blit(score_images[int(digit)], (x, y))
-            x += 20
-        screen.blit(s, (0, 0))
-        pygame.display.flip()
-        if i < score // 8:
-            clock.tick(200)
-        elif i < score // 7:
-            clock.tick(180)
-        elif i < score // 6:
-            clock.tick(150)
-        elif i < score // 5:
-            clock.tick(130)
-        elif i < score // 4:
-            clock.tick(100)
-        elif i < score // 3:
-            clock.tick(80)
-        elif i < score // 2:
-            clock.tick(50)
-        elif i < score * 3 // 4:
-            clock.tick(20)
-        else:
-            clock.tick(5)
-    if new_record:
+        y = game_over_rect.bottom + 20
+        for i in range(score + 1):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+            s = pygame.Surface((screen.get_width(), screen.get_height()))
+            s.blit(game_over_image, game_over_rect)
+            score_str = str(i)
+            x = screen.get_width() // 2 - len(str(score)) * 20 // 2
+            for digit in score_str:
+                s.blit(score_images[int(digit)], (x, y))
+                x += 20
+            screen.blit(s, (0, 0))
+            pygame.display.flip()
+            if i < score // 8:
+                clock.tick(200)
+            elif i < score // 7:
+                clock.tick(180)
+            elif i < score // 6:
+                clock.tick(150)
+            elif i < score // 5:
+                clock.tick(130)
+            elif i < score // 4:
+                clock.tick(100)
+            elif i < score // 3:
+                clock.tick(80)
+            elif i < score // 2:
+                clock.tick(50)
+            elif i < score * 3 // 4:
+                clock.tick(20)
+            else:
+                clock.tick(5)
+
+    if score and score > record:
         new_record_font = pygame.font.Font(None, 72)
         new_record_text = new_record_font.render("НОВЫЙ РЕКОРД!", True, (255, 215, 0))
         new_record_rect = new_record_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
@@ -543,8 +547,8 @@ def choose_level():
     easy_button = Button("unclicked_level_button_1.png", 'clicked_level_button_1.png', (80, 80), (100, 200), buttons)
     medium_button = Button("unclicked_level_button_2.png", 'clicked_level_button_2.png', (80, 80), (100, 300), buttons)
     hard_button = Button("unclicked_level_button_3.png", 'clicked_level_button_3.png', (80, 80), (100, 400), buttons)
-    rb_btn = rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20),
-                             buttons)
+    rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20),
+                    buttons)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -559,11 +563,181 @@ def choose_level():
         pygame.display.flip()
         clock.tick(60)
         if easy_button.isclicked():
-            pass
+            easy_level()
         elif medium_button.isclicked():
-            pass
+            medium_level()
         elif hard_button.isclicked():
             pass
+
+
+def easy_level():
+    global running
+    global game_over_screen
+
+    pygame.display.set_caption('Flappy Bird Easy Level')
+
+    all_sprites = pygame.sprite.Group()
+    obstacles = pygame.sprite.Group()
+    borders = pygame.sprite.Group()
+    buttons = pygame.sprite.Group()
+
+    rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
+
+    size = width, height = 800, 600
+    screen = pygame.display.set_mode(size)
+
+    br = Bird(100, 300, all_sprites, obstacles, borders)
+    Clouds(all_sprites, borders, width)
+    Ground(all_sprites, borders, height, width)
+
+    clock = pygame.time.Clock()
+    MYEVENTTYPE = pygame.USEREVENT + 1
+    pygame.time.set_timer(MYEVENTTYPE, 1300)
+
+    pause_screen = pygame.Surface((screen.get_width(), screen.get_height()))
+    pause_screen.set_alpha(70)
+    pause = False
+
+    eazy = 250
+    background_image = pygame.transform.scale(pygame.image.load(os.path.join("data", "background-day.png")),
+                                              (width, height))
+
+    pipes = []
+    x = width
+    y = 150
+    for i in range(24):
+        pipes.append(Pipe(y, eazy, all_sprites, obstacles, height, x))
+        x += 250
+        if i <= 11:
+            y += 30
+        else:
+            y -= 30
+
+    while running:
+        for event in pygame.event.get():
+            if not pause:
+                rb_btn.kill()
+                pygame.mouse.set_visible(False)
+                if event.type == MYEVENTTYPE:
+                    pass
+                if event.type == pygame.MOUSEBUTTONDOWN or (
+                        event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+                    br.click_event()
+            else:
+                pygame.mouse.set_visible(True)
+                buttons.update(event)
+                buttons.draw(screen)
+            if rb_btn.isclicked():
+                return
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and not pause:
+                rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80),
+                                (680, 20), buttons)
+                screen.blit(pause_screen, (0, 0))
+                pause = True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
+                pause = False
+
+        if not pause:
+            screen.blit(background_image, (0, 0))
+            all_sprites.update()
+            all_sprites.draw(screen)
+            borders.draw(screen)
+
+        pygame.display.flip()
+        clock.tick(50)
+
+    pygame.mouse.set_visible(True)
+    if game_over_screen:
+        game_over(screen)
+    running = True
+    game_over_screen = False
+
+
+def medium_level():
+    global running
+    global game_over_screen
+
+    pygame.display.set_caption('Flappy Bird Medium Level')
+
+    all_sprites = pygame.sprite.Group()
+    obstacles = pygame.sprite.Group()
+    borders = pygame.sprite.Group()
+    buttons = pygame.sprite.Group()
+
+    rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
+
+    size = width, height = 800, 600
+    screen = pygame.display.set_mode(size)
+
+    br = Bird(100, 300, all_sprites, obstacles, borders)
+    Clouds(all_sprites, borders, width)
+    Ground(all_sprites, borders, height, width)
+
+    clock = pygame.time.Clock()
+    MYEVENTTYPE = pygame.USEREVENT + 1
+    pygame.time.set_timer(MYEVENTTYPE, 900)
+
+    pause_screen = pygame.Surface((screen.get_width(), screen.get_height()))
+    pause_screen.set_alpha(70)
+    pause = False
+
+    medium = 180
+    background_image = pygame.transform.scale(pygame.image.load(os.path.join("data", "background-day.png")),
+                                              (width, height))
+
+    pipes = []
+    x = width
+    y = 250
+    for i in range(24):
+        pipes.append(Pipe(y, medium, all_sprites, obstacles, height, x))
+        x += 225
+        if i % 2 == 0:
+            y += 50
+        else:
+            y -= 50
+
+    while running:
+        for event in pygame.event.get():
+            if not pause:
+                rb_btn.kill()
+                pygame.mouse.set_visible(False)
+                if event.type == MYEVENTTYPE:
+                    pass
+                if event.type == pygame.MOUSEBUTTONDOWN or (
+                        event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+                    br.click_event()
+            else:
+                pygame.mouse.set_visible(True)
+                buttons.update(event)
+                buttons.draw(screen)
+            if rb_btn.isclicked():
+                return
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and not pause:
+                rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80),
+                                (680, 20), buttons)
+                screen.blit(pause_screen, (0, 0))
+                pause = True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
+                pause = False
+
+        if not pause:
+            screen.blit(background_image, (0, 0))
+            all_sprites.update()
+            all_sprites.draw(screen)
+            borders.draw(screen)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    pygame.mouse.set_visible(True)
+    if game_over_screen:
+        game_over(screen)
+    running = True
+    game_over_screen = False
 
 
 if __name__ == '__main__':
