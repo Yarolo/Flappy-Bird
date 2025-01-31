@@ -14,6 +14,25 @@ class Counter:
         self.score += 1
 
 
+class Particle(pygame.sprite.Sprite):
+    def __init__(self, x, y, size, color, velocity, all_sprites=None):
+        super().__init__()
+        self.image = pygame.Surface((size, size))
+        self.image.fill(color)
+        self.rect = self.image.get_rect(center=(x, y))
+        self.velocity = velocity
+        self.lifetime = random.randint(30, 60)
+        if all_sprites:
+            all_sprites.add(self)
+
+    def update(self):
+        self.rect.x += self.velocity[0]
+        self.rect.y += self.velocity[1]
+        self.lifetime -= 1
+        if self.lifetime <= 0:
+            self.kill()
+
+
 class Bird(pygame.sprite.Sprite):
     def __init__(self, x, y, all_sprites, obstacles, borders):
         super().__init__(all_sprites)
@@ -36,6 +55,29 @@ class Bird(pygame.sprite.Sprite):
         self.pipe_suck_speed = [0, 0]
         self.bounce_count = 0
         self.max_bounces = 3
+        self.skidding = False
+        self.skid_timer = 0
+        self.all_sprites = all_sprites
+
+    def die(self, death_type, obstacle=None):
+        self.dead = True
+        self.death_type = death_type
+        if death_type == "ground":
+            self.vel = 0
+        elif death_type == "pipe" or death_type == "ball":
+            self.create_blood_particles()
+            self.kill()
+        elif death_type == "top":
+            self.vel = 0
+        elif death_type == "bottom":
+            self.vel = -20
+
+    def create_blood_particles(self):
+        if hasattr(self, 'all_sprites') and self.all_sprites:
+            for _ in range(50):
+                velocity = [random.uniform(-5, 5), random.uniform(-5, 5)]
+                Particle(self.rect.centerx, self.rect.centery, random.randint(5, 10),
+                         (255, 0, 0), velocity, self.all_sprites)
 
     def update(self, *ev):
         global running
@@ -47,12 +89,12 @@ class Bird(pygame.sprite.Sprite):
                         self.die(death_type="pipe", obstacle=i)
                     elif isinstance(i, Ball):
                         self.die(death_type="ball")
-            if pygame.sprite.spritecollideany(self, self.borders):
-                border = pygame.sprite.spritecollideany(self, self.borders)
-                if border.rect.y == 0:
-                    self.die(death_type="top")
-                else:
-                    self.die(death_type="bottom")
+            for border in self.borders.sprites():
+                if pygame.sprite.collide_mask(self, border):
+                    if border.rect.y == 0:
+                        self.die(death_type="top")
+                    else:
+                        self.die(death_type="bottom")
             self.rect.y += self.vel
             self.vel += self.gravity
             if self.vel < 0:
@@ -86,38 +128,6 @@ class Bird(pygame.sprite.Sprite):
                         self.image = pygame.transform.rotate(self.images['mid'], 180)
                         running = False
                         game_over_screen = True
-            elif self.death_type == "pipe":
-                self.rect.x += self.pipe_suck_speed[0]
-                self.rect.y += self.pipe_suck_speed[1]
-                if self.rect.y < 0 or self.rect.y > 600:
-                    running = False
-                    game_over_screen = True
-            elif self.death_type == "ball":
-                self.rotation_angle += 10
-                self.image = pygame.transform.rotate(self.images['mid'], self.rotation_angle)
-                self.vel += self.gravity
-                self.rect.y += self.vel
-                if self.rect.y >= 600:
-                    running = False
-                    game_over_screen = True
-
-    def die(self, death_type, obstacle=None):
-        self.dead = True
-        self.death_type = death_type
-        if death_type == "top":
-            self.vel = 0
-        elif death_type == "bottom":
-            self.vel = -20
-        elif death_type == "pipe":
-            self.pipe_suck_speed = [0, 0]
-            if obstacle.rect.x > self.rect.x:
-                self.pipe_suck_speed[0] = -5
-            else:
-                self.pipe_suck_speed[0] = 5
-            self.pipe_suck_speed[1] = -5
-        elif death_type == "ball":
-            self.vel = 0
-            self.rotation_angle = 0
 
     def click_event(self):
         self.vel = -10
