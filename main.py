@@ -221,7 +221,7 @@ class Ball(pygame.sprite.Sprite):
         self.angle = 0
         self.rotation_speed = 11
         self.movement_type = random.choice([
-            "bounce", "straight", "sinusoidal", "spiral", "zigzag", "chaotic", "static"
+            "bounce", "spiral", "zigzag", "chaotic", "static"
         ])
         self.level = random.choice(["top", "middle", "bottom"])
         self.amplitude = random.randint(50, 100)
@@ -244,11 +244,6 @@ class Ball(pygame.sprite.Sprite):
             self.rect.y += self.vel_y
             if self.rect.y + self.image.get_height() > self.height - 20 or self.rect.y < 0:
                 self.vel_y *= -1
-        elif self.movement_type == "straight":
-            pass
-        elif self.movement_type == "sinusoidal":
-            self.time += 1
-            self.rect.y = self.rect.y + self.amplitude * math.sin(self.frequency * self.time)
         elif self.movement_type == "spiral":
             self.spiral_angle += 0.1
             self.rect.y = self.rect.y + 2 * math.sin(self.spiral_angle)
@@ -805,11 +800,25 @@ def make_medium_level(size, all_sprites, obstacles):
             y -= 50
     Finish(x, all_sprites, obstacles)
 
+
 # Основа игры
 def main(screen, level='infinity'):
+    pygame.mixer.init()
 # Установка названия окна игры
     pygame.display.set_caption('Flappy Bird Easy Level')
 # Создание групп спрайтов
+    try:
+        pygame.mixer.music.load(os.path.join("data", "C418 — Aria Math (Synthwave remix).mp3"))
+        # Загружаем фоновую музыку
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1)
+    except pygame.error as e:
+        print(f"Ошибка загрузки музыки: {e}")
+    try:
+        death_sound = pygame.mixer.Sound(os.path.join("data", "die.mp3"))
+        death_sound.set_volume(0.7)
+    except pygame.error as e:
+        print(f"Ошибка загрузки звука смерти: {e}")
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
@@ -888,6 +897,7 @@ def main(screen, level='infinity'):
                 buttons.update(event)
                 buttons.draw(screen)
             if rb_btn.isclicked():
+                pygame.mixer.music.stop()
                 return
             if event.type == pygame.QUIT:
                 sys.exit()
@@ -899,12 +909,15 @@ def main(screen, level='infinity'):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
                 pause = False
             if br.islose():
+                death_sound.play()
+                pygame.mixer.music.stop()
                 pygame.mouse.set_visible(True)
                 if not (level == 'infinity'):
                     game_over(screen, cnt.score, False)
                 game_over(screen, cnt.score)
                 return
             if br.iswin():
+                pygame.mixer.music.stop()
                 pygame.mouse.set_visible(True)
                 win(screen)
                 return
@@ -923,6 +936,7 @@ def main(screen, level='infinity'):
 
         pygame.display.flip()
         clock.tick(50)
+
 
 # Основная точка входа в программу
 if __name__ == '__main__':
