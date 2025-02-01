@@ -924,7 +924,7 @@ def main(screen, level='infinity'):
         pygame.display.flip()
         clock.tick(50)
 
-
+# Основная точка входа в программу
 if __name__ == '__main__':
     while True:
         start_screen()
