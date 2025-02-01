@@ -289,9 +289,6 @@ class Finish(pygame.sprite.Sprite):
 
     def update(self, *args, **kwargs):
         self.rect.x -= self.v
-        if self.rect.x + 50 == 0 and not self.passed:
-            self.passed = True
-            cnt.update_score()
         if self.rect.x + 50 < 0:
             self.kill()
 
