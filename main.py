@@ -6,15 +6,20 @@ import sys
 import pygame
 
 
+# Класс для отслеживания счета в игре
 class Counter:
+    # Инициализация счета
     def __init__(self):
         self.score = 0
 
+    # Метод для увеличения счета
     def update_score(self):
         self.score += 1
 
 
+# Класс для анимации смерти персонажа
 class Particle(pygame.sprite.Sprite):
+    # Создание перьев
     def __init__(self, x, y, size, color, velocity, all_sprites=None):
         super().__init__()
         self.image = pygame.transform.scale(
@@ -25,6 +30,7 @@ class Particle(pygame.sprite.Sprite):
         if all_sprites:
             all_sprites.add(self)
 
+    # Определение положения и времени жизни перьев
     def update(self, *args):
         self.rect.x += self.velocity[0]
         self.rect.y += self.velocity[1]
@@ -33,7 +39,9 @@ class Particle(pygame.sprite.Sprite):
             self.kill()
 
 
+# Класс взаимодействия с персонажем
 class Bird(pygame.sprite.Sprite):
+    # Инициализация параметров птицы
     def __init__(self, x, y, all_sprites, obstacles, borders):
         super().__init__(all_sprites)
         self.obstacles = obstacles
@@ -61,25 +69,28 @@ class Bird(pygame.sprite.Sprite):
         self.lose = False
         self.win = False
 
+    # Проверка на поражение
     def islose(self):
         if self.lose:
             self.lose = False
             return True
         return False
 
+    # Проверка на победу
     def iswin(self):
         if self.win:
             self.win = False
             return True
         return False
 
+    # Убивают птицу и выполняют анимацию смерти
     def die(self, death_type, obstacle=None):
         self.dead = True
         self.death_type = death_type
         if death_type == "ground":
             self.vel = 0
         elif death_type == "pipe" or death_type == "ball":
-            self.create_blood_particles()
+            self.create_feathers_particles()
             self.kill()
             self.lose = True
         elif death_type == "top":
@@ -87,13 +98,14 @@ class Bird(pygame.sprite.Sprite):
         elif death_type == "bottom":
             self.vel = -20
 
-    def create_blood_particles(self):
+    def create_feathers_particles(self):
         if hasattr(self, 'all_sprites') and self.all_sprites:
             for _ in range(25):
                 velocity = [random.uniform(-5, 5), random.uniform(-5, 5)]
                 Particle(self.rect.centerx, self.rect.centery, random.randint(5, 10),
                          (255, 0, 0), velocity, self.all_sprites)
 
+    # Отрисовка движения птицы
     def update(self, *ev):
         if not self.dead:
             for i in self.obstacles.sprites():
@@ -143,12 +155,15 @@ class Bird(pygame.sprite.Sprite):
                         self.image = pygame.transform.rotate(self.images['mid'], 180)
                         self.lose = True
 
+    # Движение птицы вверх по нажатию "прыжка"
     def click_event(self):
         if not self.dead:
             self.vel = -10
 
 
+# Класс для труб
 class Pipe(pygame.sprite.Sprite):
+    # Инициализация параметров труб
     def __init__(self, y, ez, all_sprites, obstacles, height, width):
         super().__init__(all_sprites)
         self.add(obstacles)
@@ -175,6 +190,7 @@ class Pipe(pygame.sprite.Sprite):
         self.v = 5
         self.passed = False
 
+    # Обновление счетчика и положения труб
     def update(self, *args, **kwargs):
         self.rect.x -= self.v
         if self.rect.x + 50 == 0 and not self.passed:
@@ -184,7 +200,9 @@ class Pipe(pygame.sprite.Sprite):
             self.kill()
 
 
+# Класс для шипованного шара
 class Ball(pygame.sprite.Sprite):
+    # Инициализация и определение типа движения шара
     def __init__(self, all_sprites, obstacles, width, height):
         super().__init__(all_sprites)
         self.height = height
@@ -219,6 +237,7 @@ class Ball(pygame.sprite.Sprite):
         elif self.level == "bottom":
             self.rect.y = random.randint(2 * height // 3, height - 50)
 
+    # Отрисовка шара в зависимости от типа его движения
     def update(self, *args):
         self.rect.x += self.vel_x
         if self.movement_type == "bounce":
@@ -258,7 +277,9 @@ class Ball(pygame.sprite.Sprite):
             args[0].update_score()
 
 
+# Класс, отвечающий за нижнюю границу экрана
 class Ground(pygame.sprite.Sprite):
+    # Инициализация
     def __init__(self, all_sprites, borders, height, width):
         super().__init__(all_sprites)
         self.add(borders)
@@ -269,11 +290,14 @@ class Ground(pygame.sprite.Sprite):
         self.rect.x = 0
         self.rect.y = height - 20
 
+    # Возвращает высоту
     def get_height(self):
         return 20
 
 
+# Класс финишна для уровней
 class Finish(pygame.sprite.Sprite):
+    # Инициализация
     def __init__(self, x, all_sprites, obstacles):
         super().__init__(all_sprites)
         self.add(obstacles)
@@ -285,13 +309,16 @@ class Finish(pygame.sprite.Sprite):
         self.rect.y = 0
         self.v = 5
 
+    # отрисовка
     def update(self, *args, **kwargs):
         self.rect.x -= self.v
         if self.rect.x + 50 < 0:
             self.kill()
 
 
+# Класс, отвечающий за верхнюю границу экрана
 class Clouds(pygame.sprite.Sprite):
+    # Инициализация
     def __init__(self, all_sprites, borders, width):
         super().__init__(all_sprites)
         self.add(borders)
@@ -303,11 +330,14 @@ class Clouds(pygame.sprite.Sprite):
         self.rect.x = 0
         self.rect.y = 0
 
+    # Возвращает высоту
     def get_height(self):
         return 20
 
 
+# Класс кнопок
 class Button(pygame.sprite.Sprite):
+    # Инициализация
     def __init__(self, unclick, click, size, pos, buttons):
         super().__init__(buttons)
         self.unclicked_im = pygame.image.load(os.path.join('data', unclick)).convert_alpha()
@@ -320,12 +350,14 @@ class Button(pygame.sprite.Sprite):
         self.rect.y = pos[1]
         self.clicked = False
 
+    # Проверка на нажатие
     def isclicked(self):
         if self.clicked:
             self.clicked = False
             return True
         return False
 
+    # Отрисовка с выбором нажатой/ненажатой картинки
     def update(self, *args, **kwargs):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
                 self.rect.collidepoint(args[0].pos):
@@ -336,7 +368,9 @@ class Button(pygame.sprite.Sprite):
                 self.clicked = True
 
 
+# Класс заднего фона
 class Background:
+    # Инициализация
     def __init__(self, filename, screen_width, screen_height):
         pygame.init()
         self.screen_width, self.screen_height = screen_width, screen_height
@@ -344,18 +378,13 @@ class Background:
         pygame.display.set_caption("Flappy Bird")
         self.image = pygame.transform.scale(pygame.image.load(os.path.join('data', filename)),
                                             (self.screen_width, self.screen_height))
-        self.font = pygame.font.Font(None, 24)
-        self.rules = [
-            "Цель игры - пролететь как можно дальше.",
-            "Если птица столкнется с трубой или упадет на землю, игра закончится.",
-            "Игрок может начать игру заново, нажав пробел."
-        ]
-        self.show_rules = False
 
+    # Отрисовка
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
 
 
+# Возвращает рекорд из record.txt
 def load_record():
     try:
         with open('data/record.txt', 'r') as f:
@@ -364,11 +393,13 @@ def load_record():
         return 0
 
 
+# Записывает рекорд в record.txt
 def save_record(record):
     with open('data/record.txt', 'w') as f:
         f.write(str(record))
 
 
+# Рисует конфетти (используется при новом рекорде)
 def draw_confetti(screen):
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 165, 0)]  # Разные цвета
     confetti_particles = []
@@ -382,6 +413,7 @@ def draw_confetti(screen):
     return confetti_particles
 
 
+# Финальное окно
 def game_over(screen, score, isscoring=True):
     game_over_image = pygame.transform.scale(pygame.image.load(os.path.join('data', 'game_over.png')), (400, 160))
     game_over_rect = game_over_image.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
@@ -406,6 +438,7 @@ def game_over(screen, score, isscoring=True):
         scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
 
 
+# Анимации для конечного экрана
 def scoring(screen, score, game_over_rect, game_over_image, score_images, clock):
     x = screen.get_width() // 2 - len(str(score)) * 20 // 2
     y = game_over_rect.bottom + 20
@@ -526,6 +559,7 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
                 return
 
 
+# Cтартовое окно
 def start_screen():
     background = Background("background-day.png", 800, 600)
     screen = background.screen
@@ -553,15 +587,6 @@ def start_screen():
         background.draw(screen)
         buttons.draw(screen)
         screen.blit(bird_image, bird_rect)
-        rules_button_text = background.font.render("Правила", True, (0, 0, 0))
-        rules_button_rect = rules_button_text.get_rect(topleft=(10, 10))
-        screen.blit(rules_button_text, rules_button_rect)
-        if background.show_rules:
-            y = rules_button_rect.bottom + 10
-            for rule in background.rules:
-                text = background.font.render(rule, True, (0, 0, 0))
-                screen.blit(text, (10, y))
-                y += text.get_height() + 5
         animation_timer += 1
         if animation_timer >= animation_speed:
             animation_timer = 0
@@ -577,6 +602,7 @@ def start_screen():
         clock.tick(60)
 
 
+# Выбор режима игры
 def choose_game_mode(screen, background):
     clock = pygame.time.Clock()
     buttons = pygame.sprite.Group()
@@ -643,6 +669,7 @@ def choose_game_mode(screen, background):
         clock.tick(60)
 
 
+# Выбор уровня
 def choose_level(screen, background):
     clock = pygame.time.Clock()
     buttons = pygame.sprite.Group()
@@ -714,7 +741,8 @@ def choose_level(screen, background):
         clock.tick(60)
 
 
-def win(screen, initial_scale=5.0, target_scale=3.0, scale_speed=0.05):
+# Надпись "победа" при прохождении уровня
+def win(screen, initial_scale=10.0, target_scale=3.0, scale_speed=0.1):
     last_frame = screen.copy()
     try:
         image = pygame.image.load(os.path.join("data", "win.png")).convert_alpha()
@@ -745,6 +773,8 @@ def win(screen, initial_scale=5.0, target_scale=3.0, scale_speed=0.05):
         pygame.display.flip()
         clock.tick(60)
 
+
+# Создание легкого уровня
 def make_easy_level(size, all_sprites, obstacles):
     pygame.display.set_caption('Flappy Bird Easy Level')
     eazy = 250
@@ -760,6 +790,7 @@ def make_easy_level(size, all_sprites, obstacles):
     Finish(x, all_sprites, obstacles)
 
 
+# Создание среднего уровня
 def make_medium_level(size, all_sprites, obstacles):
     pygame.display.set_caption('Flappy Bird Medium Level')
     medium = 180
@@ -774,17 +805,18 @@ def make_medium_level(size, all_sprites, obstacles):
             y -= 50
     Finish(x, all_sprites, obstacles)
 
-
+# Основа игры
 def main(screen, level='infinity'):
+# Установка названия окна игры
     pygame.display.set_caption('Flappy Bird Easy Level')
-
+# Создание групп спрайтов
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
     buttons = pygame.sprite.Group()
-
+# Создание кнопки "Назад"
     rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
-
+# Создание основных объектов
     size = width, height = screen.get_size()
     br = Bird(100, 300, all_sprites, obstacles, borders)
     Clouds(all_sprites, borders, width)
@@ -792,15 +824,17 @@ def main(screen, level='infinity'):
     clock = pygame.time.Clock()
     cnt = Counter()
     cnt.score = 0
+# Загрузка изображений цифр для отображения счета
     score_images = []
     for i in range(10):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
+# Установка таймера для бесконечного уровня
     if level == 'infinity':
         MYEVENTTYPE = pygame.USEREVENT + 1
         pygame.time.set_timer(MYEVENTTYPE, 1300)
         eazy = 300
         time = 0
-
+# Создание уровня в зависимости от выбранного уровня сложности
     if level == 'eazy':
         make_easy_level(size, all_sprites, obstacles)
     if level == 'medium':
@@ -809,14 +843,14 @@ def main(screen, level='infinity'):
         MYEVENTTYPE2 = pygame.USEREVENT + 2
         pygame.time.set_timer(MYEVENTTYPE2, 500)
         ball_cnt = 0
-
+# Создание экрана паузы
     pause_screen = pygame.Surface((screen.get_width(), screen.get_height()))
     pause_screen.set_alpha(70)
     pause = False
-
+# Загрузка изображения фона
     background_image = pygame.transform.scale(pygame.image.load(os.path.join("data", "background-day.png")),
                                               (width, height))
-
+# Основной цикл игры
     while True:
         for event in pygame.event.get():
             if not pause:
