@@ -815,6 +815,7 @@ def main(screen, level='infinity'):
     except pygame.error as e:
         print(f"Ошибка загрузки музыки: {e}")
     try:
+        # Загружаем фоновую музыку смерти
         death_sound = pygame.mixer.Sound(os.path.join("data", "die.mp3"))
         death_sound.set_volume(0.7)
     except pygame.error as e:
