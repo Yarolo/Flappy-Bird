@@ -714,9 +714,36 @@ def choose_level(screen, background):
         clock.tick(60)
 
 
-def win(screen):
-    pass
+def win(screen, initial_scale=5.0, target_scale=3.0, scale_speed=0.05):
+    last_frame = screen.copy()
+    try:
+        image = pygame.image.load(os.path.join("data", "win.png")).convert_alpha()
+    except FileNotFoundError:
+        print("Ошибка: Файл 'stamp.png' не найден в папке 'data'.")
+        return
+    original_size = image.get_size()
+    scale = initial_scale
+    clock = pygame.time.Clock()
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                return
+        scale = max(scale - scale_speed, target_scale)
+        screen.blit(last_frame, (0, 0))
+        scaled_size = (int(original_size[0] * scale), int(original_size[1] * scale))
+        scaled_image = pygame.transform.smoothscale(image, scaled_size)
+        scaled_rect = scaled_image.get_rect(center=screen.get_rect().center)
+        screen.blit(scaled_image, scaled_rect.topleft)
+        if scale <= target_scale:
+            pygame.time.wait(2000)
+            return
 
+        pygame.display.flip()
+        clock.tick(60)
 
 def make_easy_level(size, all_sprites, obstacles):
     pygame.display.set_caption('Flappy Bird Easy Level')
