@@ -25,7 +25,7 @@ class Particle(pygame.sprite.Sprite):
         if all_sprites:
             all_sprites.add(self)
 
-    def update(self):
+    def update(self, *args):
         self.rect.x += self.velocity[0]
         self.rect.y += self.velocity[1]
         self.lifetime -= 1
@@ -176,11 +176,10 @@ class Pipe(pygame.sprite.Sprite):
         self.passed = False
 
     def update(self, *args, **kwargs):
-        global cnt
         self.rect.x -= self.v
         if self.rect.x + 50 == 0 and not self.passed:
             self.passed = True
-            cnt.update_score()
+            args[0].update_score()
         if self.rect.x + 50 < 0:
             self.kill()
 
@@ -221,7 +220,6 @@ class Ball(pygame.sprite.Sprite):
             self.rect.y = random.randint(2 * height // 3, height - 50)
 
     def update(self, *args):
-        global cnt
         self.rect.x += self.vel_x
         if self.movement_type == "bounce":
             self.rect.y += self.vel_y
@@ -257,7 +255,7 @@ class Ball(pygame.sprite.Sprite):
             self.kill()
         if self.rect.x + 50 == 0 and not self.passed:
             self.passed = True
-            cnt.update_score()
+            args[0].update_score()
 
 
 class Ground(pygame.sprite.Sprite):
@@ -358,9 +356,6 @@ class Background:
         screen.blit(self.image, (0, 0))
 
 
-cnt = Counter()
-
-
 def load_record():
     try:
         with open('data/record.txt', 'r') as f:
@@ -385,10 +380,6 @@ def draw_confetti(screen):
         color = random.choice(colors)
         confetti_particles.append([x, y, size, velocity, color])
     return confetti_particles
-
-
-def win(screen):
-    pass
 
 
 def game_over(screen, score, isscoring=True):
@@ -550,7 +541,7 @@ def start_screen():
     bird_image = bird_images[bird_state]
     bird_rect = bird_image.get_rect(center=(100, 300))
     animation_timer = 0
-    animation_speed = 30
+    animation_speed = 10
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -558,7 +549,7 @@ def start_screen():
                 sys.exit()
             buttons.update(event)
             if playbutton.isclicked():
-                choose_game_mode()
+                choose_game_mode(screen, background)
         background.draw(screen)
         buttons.draw(screen)
         screen.blit(bird_image, bird_rect)
@@ -586,9 +577,7 @@ def start_screen():
         clock.tick(60)
 
 
-def choose_game_mode():
-    background = Background("background-day.png", 800, 600)
-    screen = background.screen
+def choose_game_mode(screen, background):
     clock = pygame.time.Clock()
     buttons = pygame.sprite.Group()
     infinite_button = Button("unclicked_endless_mode_button.png", "clicked_endless_mode_button.png",
@@ -606,7 +595,7 @@ def choose_game_mode():
     bird_image = bird_images[bird_state]
     bird_rect = bird_image.get_rect(center=(infinite_button.rect.left - 50, infinite_button.rect.centery))
     animation_timer = 0
-    animation_speed = 30
+    animation_speed = 10
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -614,12 +603,12 @@ def choose_game_mode():
                 sys.exit()
             buttons.update(event)
             if infinite_button.isclicked():
-                main()
+                main(screen)
                 return
             elif rb_btn.isclicked():
                 return
             elif levels_button.isclicked():
-                choose_level()
+                choose_level(screen, background)
         mouse_x, mouse_y = pygame.mouse.get_pos()
         infinite_button_rect = infinite_button.rect
         levels_button_rect = levels_button.rect
@@ -654,9 +643,7 @@ def choose_game_mode():
         clock.tick(60)
 
 
-def choose_level():
-    background = Background("background-day.png", 800, 600)
-    screen = background.screen
+def choose_level(screen, background):
     clock = pygame.time.Clock()
     buttons = pygame.sprite.Group()
     easy_button = Button("unclicked_level_button_1.png", 'clicked_level_button_1.png', (80, 80), (100, 200), buttons)
@@ -682,11 +669,11 @@ def choose_level():
             if rb_btn.isclicked():
                 return
             elif easy_button.isclicked():
-                main('eazy')
+                main(screen, 'eazy')
             elif medium_button.isclicked():
-                main('medium')
+                main(screen, 'medium')
             elif hard_button.isclicked():
-                main('hard')
+                main(screen, 'hard')
         mouse_x, mouse_y = pygame.mouse.get_pos()
         easy_button_rect = easy_button.rect
         medium_button_rect = medium_button.rect
@@ -761,7 +748,7 @@ def make_medium_level(size, all_sprites, obstacles):
     Finish(x, all_sprites, obstacles)
 
 
-def main(level='infinity'):
+def main(screen, level='infinity'):
     pygame.display.set_caption('Flappy Bird Easy Level')
 
     all_sprites = pygame.sprite.Group()
@@ -771,18 +758,22 @@ def main(level='infinity'):
 
     rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
 
-    size = width, height = 800, 600
-    screen = pygame.display.set_mode(size)
-
+    size = width, height = screen.get_size()
     br = Bird(100, 300, all_sprites, obstacles, borders)
     Clouds(all_sprites, borders, width)
     Ground(all_sprites, borders, height, width)
     clock = pygame.time.Clock()
+    cnt = Counter()
+    cnt.score = 0
+    score_images = []
+    for i in range(10):
+        score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
     if level == 'infinity':
         MYEVENTTYPE = pygame.USEREVENT + 1
         pygame.time.set_timer(MYEVENTTYPE, 1300)
         eazy = 300
         time = 0
+
     if level == 'eazy':
         make_easy_level(size, all_sprites, obstacles)
     if level == 'medium':
@@ -859,9 +850,15 @@ def main(level='infinity'):
 
         if not pause:
             screen.blit(background_image, (0, 0))
-            all_sprites.update()
+            all_sprites.update(cnt)
             all_sprites.draw(screen)
             borders.draw(screen)
+            if level == 'infinity':
+                score = cnt.score
+                x = width // 2 - len(str(score)) * 20 // 2
+                for digit in str(score):
+                    screen.blit(score_images[int(digit)], (x, height // 2 - 20))
+                    x += 20
 
         pygame.display.flip()
         clock.tick(50)
