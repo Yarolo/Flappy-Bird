@@ -49,7 +49,8 @@ class Bird(pygame.sprite.Sprite):
         self.images = {
             'up': pygame.image.load(os.path.join('data', 'bluebird-upflap.png')).convert_alpha(),
             'mid': pygame.image.load(os.path.join('data', 'bluebird-midflap.png')).convert_alpha(),
-            'down': pygame.image.load(os.path.join('data', 'bluebird-downflap.png')).convert_alpha()
+            'down': pygame.image.load(os.path.join('data', 'bluebird-downflap.png')).convert_alpha(),
+            'dead': pygame.image.load(os.path.join('data', 'bluebird_dead.png')).convert_alpha()
         }
         self.image = self.images['mid']
         self.rect = self.image.get_rect(center=(x, y))
@@ -137,12 +138,12 @@ class Bird(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(center=self.rect.center)
         else:
             if self.death_type == "top":
-                self.angle = min(self.angle + 5, 90)
+                self.angle = min(self.angle + 5, 90)  # Поворот птицы вверх
                 self.image = pygame.transform.rotate(self.images['mid'], self.angle)
                 self.vel += self.gravity
                 self.rect.y += self.vel
-                if self.rect.y >= 600:
-                    self.image = pygame.transform.rotate(self.images['mid'], 180)
+                if self.rect.y >= 600 or self.angle >= 90:
+                    self.image = self.images['dead']
                     self.lose = True
             elif self.death_type == "bottom":
                 self.vel += self.gravity
@@ -152,7 +153,7 @@ class Bird(pygame.sprite.Sprite):
                     self.bounce_count += 1
                     self.vel *= -0.7
                     if self.bounce_count >= self.max_bounces:
-                        self.image = pygame.transform.rotate(self.images['mid'], 180)
+                        self.image = self.images['dead']
                         self.lose = True
 
     # Движение птицы вверх по нажатию "прыжка"
@@ -421,14 +422,15 @@ def game_over(screen, score, isscoring=True):
 
 # Анимации для конечного экрана
 def scoring(screen, score, game_over_rect, game_over_image, score_images, clock):
+    # Позиция для отображения счета
     x = screen.get_width() // 2 - len(str(score)) * 20 // 2
     y = game_over_rect.bottom + 20
-    # Загрузка рекорда
     record = load_record()
     new_record = score > record
     if new_record:
         save_record(score)
         record = score
+    # Загрузка изображений для нового рекорда
     new_record_images = []
     for i in range(1, 9):  # Загружаем 8 кадров для переливов
         image = pygame.image.load(os.path.join("data", f"record{i}.png")).convert_alpha()
@@ -494,8 +496,8 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
             velocity += gravity
             new_record_y += velocity
             scale += scale_speed
-            if new_record_y >= 400:
-                new_record_y = 400
+            if new_record_y >= 500:  # Фиксируем позицию ещё ниже (например, 500)
+                new_record_y = 500
                 velocity = -velocity * 0.7
                 if abs(velocity) < 2:
                     bouncing = False
@@ -507,6 +509,7 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
             if scale >= max_scale:
                 final_animation = False
                 sparkle_active = True
+        # Отрисовка
         s = pygame.Surface((screen.get_width(), screen.get_height()))
         s.blit(game_over_image, game_over_rect)
         score_str = str(score)
@@ -522,11 +525,12 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
             current_image = new_record_images[new_record_index]
         else:
             current_image = new_record_images[0]
+
         scaled_size = (
             int(current_image.get_width() * scale),
             int(current_image.get_height() * scale)
         )
-        max_width, max_height = 320, 128
+        max_width, max_height = 320, 128  # Ограничение максимального размера
         if scaled_size[0] > max_width or scaled_size[1] > max_height:
             scaled_size = max_width, max_height
         scaled_image = pygame.transform.scale(current_image, scaled_size)
@@ -536,6 +540,8 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
         screen.blit(s, (0, 0))
         pygame.display.flip()
         clock.tick(60)
+
+    # Ожидание завершения
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
