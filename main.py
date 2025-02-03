@@ -69,6 +69,7 @@ class Bird(pygame.sprite.Sprite):
         self.all_sprites = all_sprites
         self.lose = False
         self.win = False
+        self.lifetime = 100
 
     # Проверка на поражение
     def islose(self):
@@ -92,8 +93,7 @@ class Bird(pygame.sprite.Sprite):
             self.vel = 0
         elif death_type == "pipe" or death_type == "ball":
             self.create_feathers_particles()
-            self.kill()
-            self.lose = True
+            self.death_type = 'top'
         elif death_type == "top":
             self.vel = 0
         elif death_type == "bottom":
@@ -102,7 +102,7 @@ class Bird(pygame.sprite.Sprite):
     def create_feathers_particles(self):
         if hasattr(self, 'all_sprites') and self.all_sprites:
             for _ in range(25):
-                velocity = [random.uniform(-5, 5), random.uniform(-5, 5)]
+                velocity = [random.choice(range(-5, 5)), random.choice(range(-5, 5))]
                 Particle(self.rect.centerx, self.rect.centery, random.randint(5, 10),
                          (255, 0, 0), velocity, self.all_sprites)
 
@@ -137,13 +137,14 @@ class Bird(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(self.images[self.state], self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
         else:
+            self.image = self.images['dead']
             if self.death_type == "top":
                 self.angle = min(self.angle + 5, 90)  # Поворот птицы вверх
-                self.image = pygame.transform.rotate(self.images['mid'], self.angle)
+                self.image = pygame.transform.rotate(self.image, self.angle)
                 self.vel += self.gravity
                 self.rect.y += self.vel
                 if self.rect.y >= 600 or self.angle >= 90:
-                    self.image = self.images['dead']
+
                     self.lose = True
             elif self.death_type == "bottom":
                 self.vel += self.gravity
@@ -153,8 +154,12 @@ class Bird(pygame.sprite.Sprite):
                     self.bounce_count += 1
                     self.vel *= -0.7
                     if self.bounce_count >= self.max_bounces:
-                        self.image = self.images['dead']
                         self.lose = True
+            else:
+                print(self.lifetime)
+                if self.lifetime == 0:
+                    self.lose = True
+                self.lifetime-=1
 
     # Движение птицы вверх по нажатию "прыжка"
     def click_event(self):
@@ -418,6 +423,14 @@ def game_over(screen, score, isscoring=True):
         clock.tick(24)
     if isscoring:
         scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
+        return
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
+                return
 
 
 # Анимации для конечного экрана
@@ -447,8 +460,6 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
     max_scale = 0.8  # Максимальный масштаб (меньше, чем 400x160)
     bouncing = True
     final_animation = False
-    confetti_active = False
-    confetti_particles = []
     # Анимация счета
     for i in range(score + 1):
         for event in pygame.event.get():
@@ -491,6 +502,8 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
+                return
         # Логика падения
         if bouncing:
             velocity += gravity
@@ -542,13 +555,7 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
         clock.tick(60)
 
     # Ожидание завершения
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
-                return
+
 
 
 # Cтартовое окно
@@ -755,7 +762,7 @@ def win(screen, initial_scale=10.0, target_scale=3.0, scale_speed=0.1):
         scale = max(scale - scale_speed, target_scale)
         screen.blit(last_frame, (0, 0))
         scaled_size = (int(original_size[0] * scale), int(original_size[1] * scale))
-        scaled_image = pygame.transform.smoothscale(image, scaled_size)
+        scaled_image = pygame.transform.scale(image, scaled_size)
         scaled_rect = scaled_image.get_rect(center=screen.get_rect().center)
         screen.blit(scaled_image, scaled_rect.topleft)
         if scale <= target_scale:
@@ -764,6 +771,7 @@ def win(screen, initial_scale=10.0, target_scale=3.0, scale_speed=0.1):
 
         pygame.display.flip()
         clock.tick(60)
+
 
 
 # Создание легкого уровня
@@ -912,7 +920,8 @@ def main(screen, level='infinity'):
                 pygame.mouse.set_visible(True)
                 if not (level == 'infinity'):
                     game_over(screen, cnt.score, False)
-                game_over(screen, cnt.score)
+                else:
+                    game_over(screen, cnt.score)
                 return
             if br.iswin():
                 pygame.mixer.music.stop()
