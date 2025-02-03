@@ -144,7 +144,6 @@ class Bird(pygame.sprite.Sprite):
                 self.vel += self.gravity
                 self.rect.y += self.vel
                 if self.rect.y >= 600 or self.angle >= 90:
-
                     self.lose = True
             elif self.death_type == "bottom":
                 self.vel += self.gravity
@@ -159,7 +158,7 @@ class Bird(pygame.sprite.Sprite):
                 print(self.lifetime)
                 if self.lifetime == 0:
                     self.lose = True
-                self.lifetime-=1
+                self.lifetime -= 1
 
     # Движение птицы вверх по нажатию "прыжка"
     def click_event(self):
@@ -421,9 +420,17 @@ def game_over(screen, score, isscoring=True):
         screen.blit(s, (0, 0))
         pygame.display.flip()
         clock.tick(24)
+    record = load_record()
+    isrecord = int(score) > int(record)
+    if isrecord:
+        save_record(score)
+        record = score
     if isscoring:
-        scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
-        return
+        if isrecord:
+            scoring(screen, score, game_over_rect, game_over_image, score_images, clock, isrecord)
+            return
+        else:
+            scoring(screen, score, game_over_rect, game_over_image, score_images, clock, isrecord)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -434,15 +441,11 @@ def game_over(screen, score, isscoring=True):
 
 
 # Анимации для конечного экрана
-def scoring(screen, score, game_over_rect, game_over_image, score_images, clock):
+def scoring(screen, score, game_over_rect, game_over_image, score_images, clock, isrecord):
     # Позиция для отображения счета
     x = screen.get_width() // 2 - len(str(score)) * 20 // 2
     y = game_over_rect.bottom + 20
-    record = load_record()
-    new_record = score > record
-    if new_record:
-        save_record(score)
-        record = score
+
     # Загрузка изображений для нового рекорда
     new_record_images = []
     for i in range(1, 9):  # Загружаем 8 кадров для переливов
@@ -497,7 +500,7 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
             clock.tick(5)
     # Анимация нового рекорда
     sparkle_active = False
-    while bouncing or final_animation or sparkle_active:
+    while (bouncing or final_animation or sparkle_active) and isrecord:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -555,7 +558,6 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock)
         clock.tick(60)
 
     # Ожидание завершения
-
 
 
 # Cтартовое окно
@@ -773,7 +775,6 @@ def win(screen, initial_scale=10.0, target_scale=3.0, scale_speed=0.1):
         clock.tick(60)
 
 
-
 # Создание легкого уровня
 def make_easy_level(size, all_sprites, obstacles):
     pygame.display.set_caption('Flappy Bird Easy Level')
@@ -809,9 +810,9 @@ def make_medium_level(size, all_sprites, obstacles):
 # Основа игры
 def main(screen, level='infinity'):
     pygame.mixer.init()
-# Установка названия окна игры
+    # Установка названия окна игры
     pygame.display.set_caption('Flappy Bird Easy Level')
-# Создание групп спрайтов
+    # Создание групп спрайтов
     try:
         pygame.mixer.music.load(os.path.join("data", "C418 — Aria Math (Synthwave remix).mp3"))
         # Загружаем фоновую музыку
@@ -829,9 +830,9 @@ def main(screen, level='infinity'):
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
     buttons = pygame.sprite.Group()
-# Создание кнопки "Назад"
+    # Создание кнопки "Назад"
     rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
-# Создание основных объектов
+    # Создание основных объектов
     size = width, height = screen.get_size()
     br = Bird(100, 300, all_sprites, obstacles, borders)
     Clouds(all_sprites, borders, width)
@@ -839,17 +840,17 @@ def main(screen, level='infinity'):
     clock = pygame.time.Clock()
     cnt = Counter()
     cnt.score = 0
-# Загрузка изображений цифр для отображения счета
+    # Загрузка изображений цифр для отображения счета
     score_images = []
     for i in range(10):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
-# Установка таймера для бесконечного уровня
+    # Установка таймера для бесконечного уровня
     if level == 'infinity':
         MYEVENTTYPE = pygame.USEREVENT + 1
         pygame.time.set_timer(MYEVENTTYPE, 1300)
         eazy = 300
         time = 0
-# Создание уровня в зависимости от выбранного уровня сложности
+    # Создание уровня в зависимости от выбранного уровня сложности
     if level == 'eazy':
         make_easy_level(size, all_sprites, obstacles)
     if level == 'medium':
@@ -858,14 +859,14 @@ def main(screen, level='infinity'):
         MYEVENTTYPE2 = pygame.USEREVENT + 2
         pygame.time.set_timer(MYEVENTTYPE2, 500)
         ball_cnt = 0
-# Создание экрана паузы
+    # Создание экрана паузы
     pause_screen = pygame.Surface((screen.get_width(), screen.get_height()))
     pause_screen.set_alpha(70)
     pause = False
-# Загрузка изображения фона
+    # Загрузка изображения фона
     background_image = pygame.transform.scale(pygame.image.load(os.path.join("data", "background-day.png")),
                                               (width, height))
-# Основной цикл игры
+    # Основной цикл игры
     while True:
         for event in pygame.event.get():
             if not pause:
