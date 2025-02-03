@@ -1,3 +1,4 @@
+# Импорт библиотек
 import math
 import os
 import random
@@ -20,7 +21,7 @@ class Counter:
 # Класс для анимации смерти персонажа
 class Particle(pygame.sprite.Sprite):
     # Создание перьев
-    def __init__(self, x, y, size, color, velocity, all_sprites=None):
+    def __init__(self, x, y, size, velocity, all_sprites=None):
         super().__init__()
         self.image = pygame.transform.scale(
             pygame.image.load(os.path.join('data', 'stylus.png')).convert_alpha(), (size * 2, size * 2))
@@ -86,7 +87,7 @@ class Bird(pygame.sprite.Sprite):
         return False
 
     # Убивают птицу и выполняют анимацию смерти
-    def die(self, death_type, obstacle=None):
+    def die(self, death_type):
         self.dead = True
         self.death_type = death_type
         if death_type == "ground":
@@ -103,8 +104,7 @@ class Bird(pygame.sprite.Sprite):
         if hasattr(self, 'all_sprites') and self.all_sprites:
             for _ in range(25):
                 velocity = [random.choice(range(-5, 5)), random.choice(range(-5, 5))]
-                Particle(self.rect.centerx, self.rect.centery, random.randint(5, 10),
-                         (255, 0, 0), velocity, self.all_sprites)
+                Particle(self.rect.centerx, self.rect.centery, random.randint(5, 10), velocity, self.all_sprites)
 
     # Отрисовка движения птицы
     def update(self, *ev):
@@ -112,7 +112,7 @@ class Bird(pygame.sprite.Sprite):
             for i in self.obstacles.sprites():
                 if pygame.sprite.collide_mask(self, i):
                     if isinstance(i, Pipe):
-                        self.die(death_type="pipe", obstacle=i)
+                        self.die(death_type="pipe")
                     elif isinstance(i, Ball):
                         self.die(death_type="ball")
                     elif isinstance(i, Finish):
@@ -132,7 +132,7 @@ class Bird(pygame.sprite.Sprite):
             else:
                 self.state = 'mid'
             self.image = self.images[self.state]
-            self.angle = -self.vel * 1.5
+            self.angle = int(-self.vel * 1.5)
             self.angle = max(-60, min(60, self.angle))
             self.image = pygame.transform.rotate(self.images[self.state], self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
@@ -187,7 +187,7 @@ class Pipe(pygame.sprite.Sprite):
         self.image.blit(self.pipe_image_up, (0, self.lower_limit))
         for i in range(self.lower_limit + self.pipe_image_up.get_height(), height):
             self.image.blit(self.pipe_image_mid, (0, i))
-        self.image.set_colorkey(('white'))
+        self.image.set_colorkey('white')
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = width
@@ -386,11 +386,10 @@ class Background:
 
 # Возвращает рекорд из record.txt
 def load_record():
-    try:
-        with open('data/record.txt', 'r') as f:
-            return int(f.read())
-    except:
-        return 0
+    with open('data/record.txt', 'r') as f:
+        record = f.read()
+        return int(record) if record.isdigit() else 0
+
 
 
 # Записывает рекорд в record.txt
@@ -424,7 +423,6 @@ def game_over(screen, score, isscoring=True):
     isrecord = int(score) > int(record)
     if isrecord:
         save_record(score)
-        record = score
     if isscoring:
         if isrecord:
             scoring(screen, score, game_over_rect, game_over_image, score_images, clock, isrecord)
@@ -443,7 +441,6 @@ def game_over(screen, score, isscoring=True):
 # Анимации для конечного экрана
 def scoring(screen, score, game_over_rect, game_over_image, score_images, clock, isrecord):
     # Позиция для отображения счета
-    x = screen.get_width() // 2 - len(str(score)) * 20 // 2
     y = game_over_rect.bottom + 20
 
     # Загрузка изображений для нового рекорда
@@ -810,8 +807,6 @@ def make_medium_level(size, all_sprites, obstacles):
 # Основа игры
 def main(screen, level='infinity'):
     pygame.mixer.init()
-    # Установка названия окна игры
-    pygame.display.set_caption('Flappy Bird Easy Level')
     # Создание групп спрайтов
     try:
         pygame.mixer.music.load(os.path.join("data", "C418 — Aria Math (Synthwave remix).mp3"))
@@ -846,18 +841,21 @@ def main(screen, level='infinity'):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
     # Установка таймера для бесконечного уровня
     if level == 'infinity':
-        MYEVENTTYPE = pygame.USEREVENT + 1
-        pygame.time.set_timer(MYEVENTTYPE, 1300)
+        myeventtype = pygame.USEREVENT + 1
+        pygame.time.set_timer(myeventtype, 1300)
         eazy = 300
         time = 0
     # Создание уровня в зависимости от выбранного уровня сложности
     if level == 'eazy':
+        pygame.display.set_caption('Flappy Bird Easy Level')
         make_easy_level(size, all_sprites, obstacles)
     if level == 'medium':
+        pygame.display.set_caption('Flappy Bird Medium Level')
         make_medium_level(size, all_sprites, obstacles)
     if level == 'hard':
-        MYEVENTTYPE2 = pygame.USEREVENT + 2
-        pygame.time.set_timer(MYEVENTTYPE2, 500)
+        pygame.display.set_caption('Flappy Bird Insane Level')
+        myeventtype2 = pygame.USEREVENT + 2
+        pygame.time.set_timer(myeventtype2, 500)
         ball_cnt = 0
     # Создание экрана паузы
     pause_screen = pygame.Surface((screen.get_width(), screen.get_height()))
@@ -874,14 +872,14 @@ def main(screen, level='infinity'):
                 pygame.mouse.set_visible(False)
                 if level == 'hard':
                     if ball_cnt <= 100:
-                        if event.type == MYEVENTTYPE2:
+                        if event.type == myeventtype2:
                             for i in range(3):
                                 Ball(all_sprites, obstacles, width, height)
                                 ball_cnt += 1
                     else:
                         Finish(800, all_sprites, obstacles)
                 if level == 'infinity':
-                    if event.type == MYEVENTTYPE:
+                    if event.type == myeventtype:
                         time += 1
                         if time % 10 == 0 and eazy > 100:
                             eazy -= 40
