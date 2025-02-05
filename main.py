@@ -64,13 +64,12 @@ class Bird(pygame.sprite.Sprite):
         self.rotation_angle = 0
         self.pipe_suck_speed = [0, 0]
         self.bounce_count = 0
-        self.max_bounces = 3
+        self.max_bounces = 2
         self.skidding = False
         self.skid_timer = 0
         self.all_sprites = all_sprites
         self.lose = False
         self.win = False
-        self.lifetime = 100
 
     # Проверка на поражение
     def islose(self):
@@ -143,7 +142,7 @@ class Bird(pygame.sprite.Sprite):
                 self.image = pygame.transform.rotate(self.image, self.angle)
                 self.vel += self.gravity
                 self.rect.y += self.vel
-                if self.rect.y >= 600 or self.angle >= 90:
+                if self.rect.y >= 600:
                     self.lose = True
             elif self.death_type == "bottom":
                 self.vel += self.gravity
@@ -153,12 +152,7 @@ class Bird(pygame.sprite.Sprite):
                     self.bounce_count += 1
                     self.vel *= -0.7
                     if self.bounce_count >= self.max_bounces:
-                        self.lose = True
-            else:
-                print(self.lifetime)
-                if self.lifetime == 0:
-                    self.lose = True
-                self.lifetime -= 1
+                        self.death_type = 'top'
 
     # Движение птицы вверх по нажатию "прыжка"
     def click_event(self):
@@ -389,7 +383,6 @@ def load_record():
     with open('data/record.txt', 'r') as f:
         record = f.read()
         return int(record) if record.isdigit() else 0
-
 
 
 # Записывает рекорд в record.txt
@@ -830,6 +823,7 @@ def main(screen, level='infinity'):
         death_sound.set_volume(0.7)
     except pygame.error as e:
         print(f"Ошибка загрузки звука смерти: {e}")
+    hero = pygame.sprite.Group()
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
     borders = pygame.sprite.Group()
@@ -838,7 +832,7 @@ def main(screen, level='infinity'):
     rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80), (680, 20), buttons)
     # Создание основных объектов
     size = width, height = screen.get_size()
-    br = Bird(100, 300, all_sprites, obstacles, borders)
+    br = Bird(100, 300, hero, obstacles, borders)
     Clouds(all_sprites, borders, width)
     Ground(all_sprites, borders, height, width)
     clock = pygame.time.Clock()
@@ -850,6 +844,7 @@ def main(screen, level='infinity'):
         score_images.append(pygame.image.load(os.path.join("data", f"{i}.png")))
     # Установка таймера для бесконечного уровня
     if level == 'infinity':
+        pygame.display.set_caption('Flappy Bird Infinity')
         myeventtype = pygame.USEREVENT + 1
         pygame.time.set_timer(myeventtype, 1300)
         eazy = 300
@@ -944,6 +939,7 @@ def main(screen, level='infinity'):
                     pygame.mixer.music.play(-1)
                 except pygame.error as e:
                     print(f"Ошибка загрузки фоновой музыки: {e}")
+                pygame.display.set_caption('Flappy Bird')
                 return
             if br.iswin():
                 pygame.mixer.music.stop()
@@ -955,12 +951,15 @@ def main(screen, level='infinity'):
                     pygame.mixer.music.play(-1)
                 except pygame.error as e:
                     print(f"Ошибка загрузки фоновой музыки: {e}")
+                pygame.display.set_caption('Flappy Bird')
                 return
 
         if not pause:
             screen.blit(background_image, (0, 0))
             all_sprites.update(cnt)
             all_sprites.draw(screen)
+            hero.update()
+            hero.draw(screen)
             borders.draw(screen)
             if level == 'infinity':
                 score = cnt.score
