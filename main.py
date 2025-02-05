@@ -559,6 +559,13 @@ def scoring(screen, score, game_over_rect, game_over_image, score_images, clock,
 
 # Cтартовое окно
 def start_screen():
+    pygame.mixer.init()
+    try:
+        pygame.mixer.music.load(os.path.join("data", "Puzzle Bobble Arcade — In-Game Music.mp3"))
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1)
+    except pygame.error as e:
+        print(f"Ошибка загрузки фоновой музыки: {e}")
     background = Background("background-day.png", 800, 600)
     screen = background.screen
     clock = pygame.time.Clock()
@@ -630,6 +637,7 @@ def choose_game_mode(screen, background):
                 main(screen)
                 return
             elif rb_btn.isclicked():
+                start_screen()
                 return
             elif levels_button.isclicked():
                 choose_level(screen, background)
@@ -692,6 +700,7 @@ def choose_level(screen, background):
                 sys.exit()
             buttons.update(event)
             if rb_btn.isclicked():
+                choose_game_mode(screen, background)
                 return
             elif easy_button.isclicked():
                 main(screen, 'eazy')
@@ -809,7 +818,7 @@ def main(screen, level='infinity'):
     pygame.mixer.init()
     # Создание групп спрайтов
     try:
-        pygame.mixer.music.load(os.path.join("data", "C418 — Aria Math (Synthwave remix).mp3"))
+        pygame.mixer.music.load(os.path.join("data", "GTA San Andreas — Arcade Game Music.mp3"))
         # Загружаем фоновую музыку
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1)
@@ -903,6 +912,12 @@ def main(screen, level='infinity'):
                 buttons.draw(screen)
             if rb_btn.isclicked():
                 pygame.mixer.music.stop()
+                try:
+                    pygame.mixer.music.load(os.path.join("data", "nachalo.mp3"))
+                    pygame.mixer.music.set_volume(0.5)
+                    pygame.mixer.music.play(-1)
+                except pygame.error as e:
+                    print(f"Ошибка загрузки фоновой музыки: {e}")
                 return
             if event.type == pygame.QUIT:
                 sys.exit()
@@ -910,8 +925,10 @@ def main(screen, level='infinity'):
                 rb_btn = Button('unclicked_roll_back_button.png', 'clicked_roll_back_button.png', (80, 80),
                                 (680, 20), buttons)
                 screen.blit(pause_screen, (0, 0))
+                pygame.mixer.music.pause()
                 pause = True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and pause:
+                pygame.mixer.music.unpause()
                 pause = False
             if br.islose():
                 death_sound.play()
@@ -921,11 +938,23 @@ def main(screen, level='infinity'):
                     game_over(screen, cnt.score, False)
                 else:
                     game_over(screen, cnt.score)
+                try:
+                    pygame.mixer.music.load(os.path.join("data", "Puzzle Bobble Arcade — In-Game Music.mp3"))
+                    pygame.mixer.music.set_volume(0.5)
+                    pygame.mixer.music.play(-1)
+                except pygame.error as e:
+                    print(f"Ошибка загрузки фоновой музыки: {e}")
                 return
             if br.iswin():
                 pygame.mixer.music.stop()
                 pygame.mouse.set_visible(True)
                 win(screen)
+                try:
+                    pygame.mixer.music.load(os.path.join("data", "Puzzle Bobble Arcade — In-Game Music.mp3"))
+                    pygame.mixer.music.set_volume(0.5)
+                    pygame.mixer.music.play(-1)
+                except pygame.error as e:
+                    print(f"Ошибка загрузки фоновой музыки: {e}")
                 return
 
         if not pause:
